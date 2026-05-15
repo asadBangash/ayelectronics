@@ -71,7 +71,18 @@
                                     @if($errors->has('phone_number'))
                                    <span>
                                        <strong>{{ $errors->first('phone_number') }}</strong>
-                                    </span>
+                                   </span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>{{__('db.Date of Birth')}}</label>
+                                    <input type="date" name="date_of_birth" class="form-control" max="{{ date('Y-m-d') }}" value="{{ old('date_of_birth', optional($lims_customer_data->date_of_birth)->format('Y-m-d')) }}">
+                                    @if($errors->has('date_of_birth'))
+                                   <span>
+                                       <strong>{{ $errors->first('date_of_birth') }}</strong>
+                                   </span>
                                     @endif
                                 </div>
                             </div>

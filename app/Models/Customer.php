@@ -8,8 +8,12 @@ class Customer extends Model
 {
     protected $fillable =[
         "customer_group_id", "user_id", "name", "company_name",
-        "email", "type", "phone_number", "wa_number", "tax_no", "address", "city",
+        "email", "type", "phone_number", "date_of_birth", "wa_number", "tax_no", "address", "city",
         "state", "postal_code", "country", "opening_balance", "credit_limit", "points", "deposit", "pay_term_no","pay_term_period", "expense", "wishlist", "is_active"
+    ];
+
+    protected $casts = [
+        'date_of_birth' => 'date',
     ];
 
     public function customerGroup()

@@ -710,6 +710,12 @@
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
+                            <label>{{__('db.Date of Birth')}}</label>
+                            <input type="date" name="date_of_birth" class="form-control" max="{{ date('Y-m-d') }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
                             <label>{{__('db.WhatsApp Number')}}</label>
                             <input type="text" name="wa_number" class="form-control">
                         </div>

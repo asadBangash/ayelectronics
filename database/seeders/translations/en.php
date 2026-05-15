@@ -9391,5 +9391,11 @@ return array(
         'key' => 'Custom CSS/Styles',
         'value' => 'Custom CSS/Styles',
     ),
+    1573 =>
+    array(
+        'locale' => 'en',
+        'key' => 'Date of Birth',
+        'value' => 'Date of Birth',
+    ),
 
 );

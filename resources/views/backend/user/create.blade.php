@@ -122,6 +122,10 @@
                                             <label>{{__('db.Postal Code')}}</strong></label>
                                             <input type="text" name="postal_code" class="form-control">
                                         </div>
+                                        <div class="form-group">
+                                            <label>{{__('db.Date of Birth')}}</strong></label>
+                                            <input type="date" name="date_of_birth" class="form-control customer-input" max="{{ date('Y-m-d') }}">
+                                        </div>
                                     </div>
                                     <div class="form-group" id="biller-id">
                                         <label>{{__('db.Biller')}} *</strong></label>

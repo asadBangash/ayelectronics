@@ -78,6 +78,7 @@ class RegisterController extends Controller
                 }),
             ],
             'password' => 'required|string|confirmed',
+            'date_of_birth' => ['nullable', 'date'],
         ]);
     }
 
@@ -107,6 +108,7 @@ class RegisterController extends Controller
             $data['name'] = $data['customer_name'];
             $data['user_id'] = $user->id;
             $data['is_active'] = true;
+            $data['date_of_birth'] = !empty($data['date_of_birth'] ?? null) ? $data['date_of_birth'] : null;
             Customer::create($data);
         }
 

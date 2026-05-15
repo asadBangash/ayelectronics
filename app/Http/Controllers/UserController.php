@@ -111,6 +111,7 @@ class UserController extends Controller
             $data['name'] = $data['customer_name'];
             $data['phone_number'] = $data['phone'];
             $data['is_active'] = true;
+            $data['date_of_birth'] = !empty($data['date_of_birth'] ?? null) ? $data['date_of_birth'] : null;
             Customer::create($data);
         }
         return redirect('user')->with('message1', $message);

@@ -430,6 +430,7 @@ class CustomerController extends Controller
                     return $query->where('is_active', 1);
                 }),
             ],
+            'date_of_birth' => ['nullable', 'date'],
         ]);
         //validation for supplier if create both user and supplier
         if(isset($request->both)) {
@@ -467,7 +468,8 @@ class CustomerController extends Controller
             ]);
         }
         $customer_data = $request->all();
-        
+        $customer_data['date_of_birth'] = $request->filled('date_of_birth') ? $request->input('date_of_birth') : null;
+
         $customer_data['is_active'] = true;
         $prefixMessage = 'Customer';
         if(isset($request->user)) {
@@ -592,9 +594,11 @@ class CustomerController extends Controller
                     return $query->where('is_active', 1);
                 }),
             ],
+            'date_of_birth' => ['nullable', 'date'],
         ]);
 
         $input = $request->all();
+        $input['date_of_birth'] = $request->filled('date_of_birth') ? $request->input('date_of_birth') : null;
         $lims_customer_data = Customer::find($id);
 
         if(isset($input['user'])) {
@@ -693,6 +697,13 @@ class CustomerController extends Controller
                $customer->postal_code = $data['postalcode'];
                $customer->country = $data['country'];
                $customer->deposit = $data['deposit'];
+               if (!empty($data['dateofbirth'] ?? '')) {
+                   try {
+                       $customer->date_of_birth = \Carbon\Carbon::parse(trim($data['dateofbirth']))->format('Y-m-d');
+                   } catch (\Throwable $e) {
+                       $customer->date_of_birth = null;
+                   }
+               }
                $customer->is_active = true;
                $customer->save();
 

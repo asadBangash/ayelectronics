@@ -161,6 +161,7 @@ class SupplierController extends Controller
 
         $message = 'Supplier';
         if(isset($request->both)) {
+            $lims_supplier_data['date_of_birth'] = $request->filled('date_of_birth') ? $request->input('date_of_birth') : null;
             Customer::create($lims_supplier_data);
             $message .= ' and Customer';
         }

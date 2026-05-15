@@ -1319,6 +1319,12 @@
                                         </div>
                                     </div>
                                     <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label>{{__('db.Date of Birth')}}</label>
+                                            <input type="date" name="date_of_birth" class="form-control" max="{{ date('Y-m-d') }}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
                                         <div class="country-phone-group form-group">
                                             <label>{{__('db.WhatsApp Number')}}</label>
                                             <div class="d-flex">

@@ -110,6 +110,10 @@
                     <input id="customer-country" type="text" name="country" class="input-material">
                     <label for="customer-country" class="label-material">{{__('db.Country')}}</label>
                   </div>
+                  <div class="form-group-material">
+                    <input id="customer-dob" type="date" name="date_of_birth" class="input-material customer-field" max="{{ date('Y-m-d') }}">
+                    <label for="customer-dob" class="label-material">{{__('db.Date of Birth')}}</label>
+                  </div>
               </div>
               <div class="form-group-material" id="biller-id">
                 <select name="biller_id" class="form-control">
