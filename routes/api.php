@@ -81,7 +81,7 @@ Route::group(['middleware' => $middleware], function () {
         Route::get('/recent-purchase', 'recentPurchase');
         Route::get('/recent-quotation', 'recentQuotation');
         Route::get('/recent-payment', 'recentPayment');
-        Route::get('switch-theme/{theme}', 'switchTheme')->name('switchTheme');
+        Route::get('switch-theme/{theme}', 'switchTheme')->name('api.switchTheme');
         Route::get('/dashboard-filter/{start_date}/{end_date}/{warehouse_id}', 'dashboardFilter');
         Route::get('addon-list', 'addonList');
         Route::get('my-transactions/{year}/{month}', 'myTransaction');
