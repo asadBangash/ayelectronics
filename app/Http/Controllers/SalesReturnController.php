@@ -91,7 +91,7 @@ class SalesReturnController extends BaseController
 
         // Multiple Filter
         $Filtred = $helpers->filter($SaleReturn, $columns, $param, $request)
-        // Search With Multiple Param
+            // Search With Multiple Param
             ->where(function ($query) use ($request) {
                 return $query->when($request->filled('search'), function ($query) use ($request) {
                     return $query->where('Ref', 'LIKE', "%{$request->search}%")
@@ -120,6 +120,24 @@ class SalesReturnController extends BaseController
         if ($perPage == '-1') {
             $perPage = $totalRows;
         }
+
+        $allowedSortColumns = [
+            'id',
+            'Ref',
+            'date',
+            'GrandTotal',
+            'statut',
+            'payment_statut',
+            'client_id',
+            'sale_id',
+        ];
+
+        if (!in_array($order, $allowedSortColumns, true)) {
+            $order = 'id';
+        }
+
+        $dir = strtolower($dir) === 'desc' ? 'desc' : 'asc';
+
         $SaleReturn = $Filtred->offset($offSet)
             ->limit($perPage)
             ->orderBy($order, $dir)
@@ -128,7 +146,7 @@ class SalesReturnController extends BaseController
         foreach ($SaleReturn as $Sale_Return) {
 
             $item['id'] = $Sale_Return->id;
-            $item['date'] = $Sale_Return['date'].' '.$Sale_Return['time'];
+            $item['date'] = $Sale_Return['date'] . ' ' . $Sale_Return['time'];
             $item['Ref'] = $Sale_Return->Ref;
             $item['discount'] = $Sale_Return->discount;
             $item['shipping'] = $Sale_Return->shipping;
@@ -174,7 +192,6 @@ class SalesReturnController extends BaseController
             'accounts' => $accounts,
             'payment_methods' => $payment_methods,
         ]);
-
     }
 
     // ------------ Store new Sale Return --------------\\
@@ -263,7 +280,6 @@ class SalesReturnController extends BaseController
 
                             $product_warehouse->save();
                         }
-
                     } else {
                         $product_warehouse = product_warehouse::where('deleted_at', '=', null)
                             ->where('warehouse_id', $order->warehouse_id)
@@ -281,7 +297,6 @@ class SalesReturnController extends BaseController
                         }
                     }
                 }
-
             }
 
             // Pharmacy: credit batches when the return is received (mirror sale flow inversely).
@@ -312,7 +327,7 @@ class SalesReturnController extends BaseController
         try {
             \App\Jobs\SubmitDocumentToZatca::dispatch(SaleReturn::class, $createdReturn->id)->afterCommit();
         } catch (\Throwable $e) {
-            \Log::warning('ZATCA submit dispatch failed (non-blocking): '.$e->getMessage(), ['sale_return_id' => $createdReturn->id]);
+            \Log::warning('ZATCA submit dispatch failed (non-blocking): ' . $e->getMessage(), ['sale_return_id' => $createdReturn->id]);
         }
 
         return response()->json(['success' => true]);
@@ -337,7 +352,7 @@ class SalesReturnController extends BaseController
              * Allow if:
              * - user has access to all warehouses (is_all_warehouses = 1)
              * - OR sale warehouse_id is in user's assigned warehouses
-            */
+             */
             $user_auth = auth()->user();
 
             if (! $user_auth->is_all_warehouses) {
@@ -396,7 +411,6 @@ class SalesReturnController extends BaseController
                         $unit = Unit::where('id', $product_unit_sale_id['unitSale']->id)->first();
                     }
                     $unit = null;
-
                 }
 
                 // Multi-Pack Selling: reverse using the pack multiplier snapshot
@@ -419,7 +433,6 @@ class SalesReturnController extends BaseController
                                 }
                                 $product_warehouse->save();
                             }
-
                         } else {
                             $product_warehouse = product_warehouse::where('deleted_at', '=', null)->where('warehouse_id', $current_SaleReturn->warehouse_id)
                                 ->where('product_id', $value['product_id'])
@@ -442,7 +455,6 @@ class SalesReturnController extends BaseController
                         $SaleReturnDetails->delete();
                     }
                 }
-
             }
 
             // Update Data with New request
@@ -477,7 +489,6 @@ class SalesReturnController extends BaseController
                                 }
                                 $product_warehouse->save();
                             }
-
                         } else {
                             $product_warehouse = product_warehouse::where('deleted_at', '=', null)
                                 ->where('warehouse_id', $request->warehouse_id)
@@ -519,7 +530,6 @@ class SalesReturnController extends BaseController
                     }
                     $newPersistedDetails[$key] = $persistedDetail;
                 }
-
             }
 
             // Pharmacy: re-apply batch credits now that SaleReturnDetails rows exist.
@@ -563,7 +573,6 @@ class SalesReturnController extends BaseController
                 'GrandTotal' => $request['GrandTotal'],
                 'payment_statut' => $payment_statut,
             ]);
-
         }, 10);
 
         return response()->json(['success' => true]);
@@ -587,7 +596,7 @@ class SalesReturnController extends BaseController
              * Allow if:
              * - user has access to all warehouses (is_all_warehouses = 1)
              * - OR sale warehouse_id is in user's assigned warehouses
-            */
+             */
             $user_auth = auth()->user();
 
             if (! $user_auth->is_all_warehouses) {
@@ -644,7 +653,6 @@ class SalesReturnController extends BaseController
                         $unit = Unit::where('id', $product_unit_sale_id['unitSale']->id)->first();
                     }
                     $unit = null;
-
                 }
 
                 // Multi-Pack Selling: reverse using the pack multiplier snapshot.
@@ -665,7 +673,6 @@ class SalesReturnController extends BaseController
                             }
                             $product_warehouse->save();
                         }
-
                     } else {
                         $product_warehouse = product_warehouse::where('deleted_at', '=', null)->where('warehouse_id', $current_SaleReturn->warehouse_id)
                             ->where('product_id', $value['product_id'])
@@ -681,7 +688,6 @@ class SalesReturnController extends BaseController
                         }
                     }
                 }
-
             }
 
             $current_SaleReturn->details()->delete();
@@ -701,13 +707,11 @@ class SalesReturnController extends BaseController
                         'balance' => $account->balance + $payment->montant,
                     ]);
                 }
-
             }
 
             PaymentSaleReturns::where('sale_return_id', $id)->update([
                 'deleted_at' => Carbon::now(),
             ]);
-
         }, 10);
 
         return response()->json(['success' => true]);
@@ -735,7 +739,7 @@ class SalesReturnController extends BaseController
                  * Allow if:
                  * - user has access to all warehouses (is_all_warehouses = 1)
                  * - OR sale warehouse_id is in user's assigned warehouses
-                */
+                 */
                 $user_auth = auth()->user();
 
                 if (! $user_auth->is_all_warehouses) {
@@ -783,7 +787,6 @@ class SalesReturnController extends BaseController
                             $unit = Unit::where('id', $product_unit_sale_id['unitSale']->id)->first();
                         }
                         $unit = null;
-
                     }
 
                     // Multi-Pack Selling: reverse using the pack multiplier snapshot.
@@ -804,7 +807,6 @@ class SalesReturnController extends BaseController
                                 }
                                 $product_warehouse->save();
                             }
-
                         } else {
                             $product_warehouse = product_warehouse::where('deleted_at', '=', null)->where('warehouse_id', $current_SaleReturn->warehouse_id)
                                 ->where('product_id', $value['product_id'])
@@ -820,7 +822,6 @@ class SalesReturnController extends BaseController
                             }
                         }
                     }
-
                 }
 
                 $current_SaleReturn->details()->delete();
@@ -840,13 +841,11 @@ class SalesReturnController extends BaseController
                             'balance' => $account->balance + $payment->montant,
                         ]);
                     }
-
                 }
                 PaymentSaleReturns::where('sale_return_id', $SaleReturn_id)->update([
                     'deleted_at' => Carbon::now(),
                 ]);
             }
-
         }, 10);
 
         return response()->json(['success' => true]);
@@ -895,26 +894,26 @@ class SalesReturnController extends BaseController
         // Get prefix from settings, fallback to 'RT' if not set
         $setting = \App\Models\Setting::where('deleted_at', '=', null)->first();
         $prefix = !empty($setting->sale_return_prefix) ? $setting->sale_return_prefix : 'RT';
-        
+
         // Get the last sale return with a reference that starts with the prefix
         $last = DB::table('sale_returns')
-            ->where('Ref', 'like', $prefix.'_%')
+            ->where('Ref', 'like', $prefix . '_%')
             ->latest('id')
             ->first();
 
         if ($last) {
             $item = $last->Ref;
             $nwMsg = explode('_', $item);
-            
+
             // Ensure valid structure before processing
             if (isset($nwMsg[1]) && is_numeric($nwMsg[1])) {
                 $inMsg = $nwMsg[1] + 1;
-                $code = $nwMsg[0].'_'.str_pad($inMsg, 4, '0', STR_PAD_LEFT);
+                $code = $nwMsg[0] . '_' . str_pad($inMsg, 4, '0', STR_PAD_LEFT);
             } else {
-                $code = $prefix.'_0001'; // Fallback if reference is corrupted
+                $code = $prefix . '_0001'; // Fallback if reference is corrupted
             }
         } else {
-            $code = $prefix.'_0001';
+            $code = $prefix . '_0001';
         }
 
         return $code;
@@ -960,7 +959,7 @@ class SalesReturnController extends BaseController
         $return_details['currency_rate'] = $docCurrency['rate'];
         $return_details['sale_id'] = $Sale_Return->sale_id ? $Sale_Return['sale']->id : null;
         $return_details['sale_ref'] = $Sale_Return['sale'] ? $Sale_Return['sale']->Ref : '---';
-        $return_details['date'] = $Sale_Return->date.' '.$Sale_Return->time;
+        $return_details['date'] = $Sale_Return->date . ' ' . $Sale_Return->time;
         $return_details['note'] = $Sale_Return->notes;
         $return_details['statut'] = $Sale_Return->statut;
         $return_details['discount'] = $Sale_Return->discount * $docCurrency['rate'];
@@ -1007,7 +1006,6 @@ class SalesReturnController extends BaseController
                     $unit = Unit::where('id', $product_unit_sale_id['unitSale']->id)->first();
                 }
                 $unit = null;
-
             }
 
             if ($detail->product_variant_id) {
@@ -1016,8 +1014,7 @@ class SalesReturnController extends BaseController
                     ->where('id', $detail->product_variant_id)->first();
 
                 $data['code'] = $productsVariants->code;
-                $data['name'] = '['.$productsVariants->name.']'.$detail['product']['name'];
-
+                $data['name'] = '[' . $productsVariants->name . ']' . $detail['product']['name'];
             } else {
                 $data['code'] = $detail['product']['code'];
                 $data['name'] = $detail['product']['name'];
@@ -1052,7 +1049,6 @@ class SalesReturnController extends BaseController
             $data['batches'] = $batchesByDetail[(int) $detail->id] ?? [];
 
             $details[] = $data;
-
         }
 
         $company = Setting::where('deleted_at', '=', null)->first();
@@ -1215,8 +1211,7 @@ class SalesReturnController extends BaseController
                 $item_product ? $data['del'] = 0 : $data['del'] = 1;
                 $data['product_variant_id'] = $detail->product_variant_id;
                 $data['code'] = $productsVariants->code;
-                $data['name'] = '['.$productsVariants->name.']'.$detail['product']['name'];
-
+                $data['name'] = '[' . $productsVariants->name . ']' . $detail['product']['name'];
             } else {
                 $item_product = product_warehouse::where('product_id', $detail->product_id)
                     ->where('warehouse_id', $SaleReturn->warehouse_id)
@@ -1227,7 +1222,6 @@ class SalesReturnController extends BaseController
                 $data['product_variant_id'] = null;
                 $data['code'] = $detail['product']['code'];
                 $data['name'] = $detail['product']['name'];
-
             }
 
             $data['id'] = $detail->id;
@@ -1273,7 +1267,6 @@ class SalesReturnController extends BaseController
             'details' => $details,
             'sale_return' => $Return_detail,
         ]);
-
     }
 
     // ------------- Sale Return PDF-----------\\
@@ -1302,7 +1295,7 @@ class SalesReturnController extends BaseController
         $return_details['statut'] = $Sale_Return->statut;
         $return_details['sale_ref'] = $Sale_Return['sale'] ? $Sale_Return['sale']->Ref : '---';
         $return_details['Ref'] = $Sale_Return->Ref;
-        $return_details['date'] = $Sale_Return->date.' '.$Sale_Return->time;
+        $return_details['date'] = $Sale_Return->date . ' ' . $Sale_Return->time;
         $return_details['GrandTotal'] = number_format($Sale_Return->GrandTotal * $docCurrency['rate'], helpers::price_decimals(), '.', '');
         $return_details['paid_amount'] = number_format($Sale_Return->paid_amount * $docCurrency['rate'], helpers::price_decimals(), '.', '');
         $return_details['due'] = number_format($return_details['GrandTotal'] - $return_details['paid_amount'], helpers::price_decimals(), '.', '');
@@ -1335,7 +1328,6 @@ class SalesReturnController extends BaseController
                     $unit = Unit::where('id', $product_unit_sale_id['unitSale']->id)->first();
                 }
                 $unit = null;
-
             }
 
             if ($detail->product_variant_id) {
@@ -1343,7 +1335,7 @@ class SalesReturnController extends BaseController
                     ->where('id', $detail->product_variant_id)
                     ->first();
                 $data['code'] = $productsVariants->code;
-                $data['name'] = '['.$productsVariants->name.']'.$detail['product']['name'];
+                $data['name'] = '[' . $productsVariants->name . ']' . $detail['product']['name'];
             } else {
                 $data['code'] = $detail['product']['code'];
                 $data['name'] = $detail['product']['name'];
@@ -1423,7 +1415,7 @@ class SalesReturnController extends BaseController
          * Allow if:
          * - user has access to all warehouses (is_all_warehouses = 1)
          * - OR sale warehouse_id is in user's assigned warehouses
-        */
+         */
         $user_auth = auth()->user();
 
         if (! $user_auth->is_all_warehouses) {
@@ -1497,8 +1489,7 @@ class SalesReturnController extends BaseController
                 $data['product_variant_id'] = $detail->product_variant_id;
 
                 $data['code'] = $productsVariants->code;
-                $data['name'] = '['.$productsVariants->name.']'.$detail['product']['name'];
-
+                $data['name'] = '[' . $productsVariants->name . ']' . $detail['product']['name'];
             } else {
                 $item_product = product_warehouse::where('product_id', $detail->product_id)
                     ->where('warehouse_id', $SaleReturn->warehouse_id)
@@ -1509,7 +1500,6 @@ class SalesReturnController extends BaseController
                 $data['product_variant_id'] = null;
                 $data['code'] = $detail['product']['code'];
                 $data['name'] = $detail['product']['name'];
-
             }
 
             $data['id'] = $detail->id;
