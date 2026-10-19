@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\PaymentSale;
 use App\Models\Setting;
+use App\Observers\PaymentSaleInstallmentObserver;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
@@ -43,6 +45,8 @@ class AppServiceProvider extends ServiceProvider
     {
 
         Schema::defaultStringLength(191);
+
+        PaymentSale::observe(PaymentSaleInstallmentObserver::class);
 
         /* ADD THIS LINES */
         $this->commands([

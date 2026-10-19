@@ -182,6 +182,8 @@
         {{ company.invoice_footer }}
       </div>
     </a-card>
+
+    <SaleInstallmentPanel v-if="!loading && sale.id" :sale-id="sale.id" />
   </div>
 </template>
 
@@ -202,6 +204,7 @@ import {
   ExclamationCircleOutlined, MailOutlined, MessageOutlined, FilePdfOutlined,
 } from '@ant-design/icons-vue';
 import PageHeader from '../../components/PageHeader.vue';
+import SaleInstallmentPanel from './SaleInstallmentPanel.vue';
 import { useFormat } from '../../composables/useFormat';
 import { useDetailsCurrency } from '../../composables/useDetailsCurrency';
 import { useAuthStore } from '../../stores/auth';

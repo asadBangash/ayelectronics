@@ -559,6 +559,17 @@ class SalesController extends BaseController
 
         }, 10);
 
+        if ($request->filled('installment_plan') && is_array($request->installment_plan)) {
+            try {
+                app(\App\Services\Installments\InstallmentPlanService::class)
+                    ->createForSale($sale->fresh(), $request->installment_plan);
+            } catch (\Throwable $e) {
+                \Log::warning('Installment plan creation failed (non-blocking): '.$e->getMessage(), ['sale_id' => $sale->id]);
+
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+        }
+
         // Calculate commissions when sale is completed
         if ($sale->statut === 'completed') {
             try {

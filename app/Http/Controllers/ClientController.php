@@ -190,6 +190,11 @@ class ClientController extends BaseController
             $is_royalty_eligible = 0;
         }
 
+        $cnic = \App\Support\PakistanValidators::normalizeCnic($request['cnic'] ?? null);
+        if ($cnic && ! \App\Support\PakistanValidators::isValidCnic($cnic)) {
+            return response()->json(['message' => 'Invalid CNIC format.'], 422);
+        }
+
         $client = Client::create([
             'firstname' => $request['firstname'],
             'lastname' => $request['lastname'],
@@ -197,6 +202,11 @@ class ClientController extends BaseController
             'code' => $this->getNumberOrder(),
             'adresse' => $request['adresse'],
             'phone' => $request['phone'],
+            'whatsapp' => $request['whatsapp'],
+            'phone_secondary' => $request['phone_secondary'],
+            'cnic' => $cnic,
+            'area' => $request['area'],
+            'occupation' => $request['occupation'],
             'email' => $request['email'],
             'country' => $request['country'],
             'city' => $request['city'],
@@ -279,7 +289,12 @@ class ClientController extends BaseController
         // Normalize boolean flag from various inputs: '1', 'true', true, etc.
         $isRoyaltyEligible = filter_var($request->input('is_royalty_eligible'), FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
 
-        DB::transaction(function () use ($request, $id, $isRoyaltyEligible) {
+        $cnic = \App\Support\PakistanValidators::normalizeCnic($request->input('cnic'));
+        if ($cnic && ! \App\Support\PakistanValidators::isValidCnic($cnic)) {
+            return response()->json(['message' => 'Invalid CNIC format.'], 422);
+        }
+
+        DB::transaction(function () use ($request, $id, $isRoyaltyEligible, $cnic) {
             // 1) Update Client
             // opening_balance is adjusted via the dedicated adjust-opening-balance endpoint
             Client::whereKey($id)->update([
@@ -288,6 +303,11 @@ class ClientController extends BaseController
                 'name' => $request->input('name'),
                 'adresse' => $request->input('adresse'),
                 'phone' => $request->input('phone'),
+                'whatsapp' => $request->input('whatsapp'),
+                'phone_secondary' => $request->input('phone_secondary'),
+                'cnic' => $cnic,
+                'area' => $request->input('area'),
+                'occupation' => $request->input('occupation'),
                 'email' => $request->input('email'),
                 'country' => $request->input('country'),
                 'city' => $request->input('city'),

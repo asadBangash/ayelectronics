@@ -1240,6 +1240,21 @@ Route::middleware(['auth:api', 'Is_Active', 'request.safety', 'token.timeout'])-
     Route::post('sales_send_whatsapp', 'SalesController@sales_send_whatsapp');
     Route::get('get_today_sales', 'SalesController@get_today_sales');
 
+    // ------------------------------- Installments --------------------------\\
+    Route::get('installments/dashboard', 'InstallmentController@dashboard');
+    Route::get('installments/settings', 'InstallmentController@settings');
+    Route::put('installments/settings', 'InstallmentController@updateSettings');
+    Route::get('installments/overdue-report', 'InstallmentController@overdueReport');
+    Route::get('installments/guarantors', 'InstallmentController@guarantorIndex');
+    Route::post('installments/guarantors', 'InstallmentController@guarantorStore');
+    Route::get('installments/sales/{saleId}/details', 'InstallmentController@saleDetails');
+    Route::post('installments/sales/{saleId}/plan', 'InstallmentController@createPlan');
+    Route::post('installments/sales/{saleId}/whatsapp-reminder', 'InstallmentController@sendWhatsappReminder');
+    Route::get('installments/kyc/{type}/{id}/download/{field}', 'InstallmentController@downloadKyc');
+    Route::put('installments/clients/{clientId}/profile', 'InstallmentKycController@updateClientProfile');
+    Route::post('installments/clients/{clientId}/upload', 'InstallmentKycController@uploadClientFile');
+    Route::post('installments/guarantors/{guarantorId}/upload', 'InstallmentKycController@uploadGuarantorFile');
+
     // -------------------------------  Shipments --------------------------\\
     // ------------------------------------------------------------------\\
 

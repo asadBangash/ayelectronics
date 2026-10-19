@@ -23,6 +23,7 @@ class Sale extends Model
         'quickbooks_sync_error',
         // Multi-Currency snapshot; NULL = base currency, rate 1
         'currency_id', 'exchange_rate',
+        'is_installment_sale',
     ];
 
     protected $casts = [
@@ -48,6 +49,7 @@ class Sale extends Model
         'woocommerce_order_id' => 'integer',
         'currency_id' => 'integer',
         'exchange_rate' => 'float',
+        'is_installment_sale' => 'boolean',
     ];
 
     public function currency()
@@ -108,6 +110,16 @@ class Sale extends Model
     public function documents()
     {
         return $this->hasMany('App\Models\SaleDocument', 'sale_id');
+    }
+
+    public function installmentPlan()
+    {
+        return $this->hasOne(InstallmentPlan::class, 'sale_id');
+    }
+
+    public function saleGuarantors()
+    {
+        return $this->hasMany(SaleGuarantor::class, 'sale_id')->orderBy('position');
     }
 
     protected static function booted()
