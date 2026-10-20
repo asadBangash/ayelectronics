@@ -21,6 +21,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use ArPHP\I18N\Arabic;
@@ -175,6 +176,11 @@ class ClientController extends BaseController
             'name' => 'required',
             'firstname' => ['nullable', 'string', 'max:255'],
             'lastname' => ['nullable', 'string', 'max:255'],
+            'father_name' => ['nullable', 'string', 'max:255'],
+            'cnic_number' => ['nullable', 'string', 'max:32'],
+            'customer_photo' => ['nullable', 'image', 'max:5120'],
+            'cnic_front' => ['nullable', 'image', 'max:5120'],
+            'cnic_back' => ['nullable', 'image', 'max:5120'],
             'email' => [
                 'nullable', 'email', 'max:255',
                 // Ensure email is unique in clients table (exclude soft-deleted)
@@ -193,6 +199,11 @@ class ClientController extends BaseController
         $client = Client::create([
             'firstname' => $request['firstname'],
             'lastname' => $request['lastname'],
+            'father_name' => $request['father_name'],
+            'cnic_number' => $request['cnic_number'],
+            'photo_path' => $request->file('customer_photo')?->store('private/customers', 'local'),
+            'cnic_front_path' => $request->file('cnic_front')?->store('private/customers', 'local'),
+            'cnic_back_path' => $request->file('cnic_back')?->store('private/customers', 'local'),
             'name' => $request['name'],
             'code' => $this->getNumberOrder(),
             'adresse' => $request['adresse'],
@@ -215,6 +226,7 @@ class ClientController extends BaseController
 
     public function show($id)
     {
+        $this->authorizeForUser(request()->user('api'), 'view', Client::class);
         $client = Client::where('deleted_at', '=', null)->findOrFail($id);
         
         $accounts = Account::where('deleted_at', '=', null)->orderBy('id', 'desc')->get(['id', 'account_name']);
@@ -244,6 +256,11 @@ class ClientController extends BaseController
             'name' => ['required', 'string', 'max:255'],
             'firstname' => ['nullable', 'string', 'max:255'],
             'lastname' => ['nullable', 'string', 'max:255'],
+            'father_name' => ['nullable', 'string', 'max:255'],
+            'cnic_number' => ['nullable', 'string', 'max:32'],
+            'customer_photo' => ['nullable', 'image', 'max:5120'],
+            'cnic_front' => ['nullable', 'image', 'max:5120'],
+            'cnic_back' => ['nullable', 'image', 'max:5120'],
             'adresse' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => [
@@ -285,6 +302,8 @@ class ClientController extends BaseController
             Client::whereKey($id)->update([
                 'firstname' => $request->input('firstname'),
                 'lastname' => $request->input('lastname'),
+                'father_name' => $request->input('father_name'),
+                'cnic_number' => $request->input('cnic_number'),
                 'name' => $request->input('name'),
                 'adresse' => $request->input('adresse'),
                 'phone' => $request->input('phone'),
@@ -321,6 +340,15 @@ class ClientController extends BaseController
                 $ecommerceClient->save();
             }
         });
+
+        $client = Client::findOrFail($id);
+        foreach (['customer_photo' => 'photo_path', 'cnic_front' => 'cnic_front_path', 'cnic_back' => 'cnic_back_path'] as $input => $column) {
+            if ($request->hasFile($input)) {
+                if ($client->{$column}) Storage::disk('local')->delete($client->{$column});
+                $client->{$column} = $request->file($input)->store('private/customers', 'local');
+            }
+        }
+        $client->save();
 
         return response()->json(['success' => true]);
     }

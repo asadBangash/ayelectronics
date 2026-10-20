@@ -1221,6 +1221,10 @@ Route::middleware(['auth:api', 'Is_Active', 'request.safety', 'token.timeout'])-
     // ------------------------------------------------------------------\\
 
     Route::resource('sales', 'SalesController');
+    Route::get('sales/{id}/installments', [\App\Http\Controllers\InstallmentController::class, 'show']);
+    Route::post('sales/{id}/installments', [\App\Http\Controllers\InstallmentController::class, 'create']);
+    Route::post('sales/{id}/installments/{installment}/payments', [\App\Http\Controllers\InstallmentController::class, 'pay']);
+    Route::get('installment-documents/{kind}/{id}', [\App\Http\Controllers\InstallmentController::class, 'document']);
     Route::get('get_import_sales', 'SalesController@get_import_sales');
     Route::post('store_import_sales', 'SalesController@store_import_sales');
     Route::post('preview_import_sales', 'SalesController@preview_import_sales');

@@ -96,10 +96,17 @@
           <div class="inv-box">
             <div class="inv-box-title">{{ $t('Customer') }}</div>
             <div class="inv-box-name">{{ sale.client_name }}</div>
+            <div v-if="sale.client_father_name">Father's name: {{ sale.client_father_name }}</div>
+            <div v-if="sale.client_cnic_number">CNIC: {{ sale.client_cnic_number }}</div>
             <div v-if="sale.client_phone">{{ $t('Phone') }}: {{ sale.client_phone }}</div>
             <div v-if="sale.client_email">{{ $t('Email') }}: {{ sale.client_email }}</div>
             <div v-if="sale.client_adr">{{ $t('Adress') }}: {{ sale.client_adr }}</div>
             <div v-if="sale.client_tax">Tax #: {{ sale.client_tax }}</div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <img v-if="sale.client_has_photo" :src="`/api/installment-documents/customer-photo/${sale.client_id}`" alt="Customer photograph" style="width:90px" />
+              <img v-if="sale.client_has_cnic_front" :src="`/api/installment-documents/customer-front/${sale.client_id}`" alt="Customer CNIC front" style="width:140px" />
+              <img v-if="sale.client_has_cnic_back" :src="`/api/installment-documents/customer-back/${sale.client_id}`" alt="Customer CNIC back" style="width:140px" />
+            </div>
           </div>
         </a-col>
         <a-col :xs="24" :md="12">
@@ -178,6 +185,63 @@
         </table>
       </div>
 
+      <a-card title="Installment plan and payment history" size="small" style="margin-top:20px">
+        <template v-if="plan">
+          <p>Advance: {{ planMoney(plan.advance_amount) }} · Balance: {{ planMoney(Number(plan.sale_total) - Number(plan.advance_amount)) }}</p>
+          <a-table :data-source="plan.installments" :pagination="false" row-key="id" size="small" :columns="installmentColumns">
+            <template #bodyCell="{column,record}">
+              <template v-if="column.key==='amount'">{{ planMoney(record.amount) }}</template>
+              <template v-else-if="column.key==='paid'">{{ planMoney(record.paid_amount) }}</template>
+              <template v-else-if="column.key==='balance'">{{ planMoney(Number(record.amount)-Number(record.paid_amount)) }}</template>
+              <template v-else-if="column.key==='action'"><a-button size="small" :disabled="record.status==='paid'" @click="openPayment(record)">Record payment</a-button></template>
+            </template>
+          </a-table>
+          <h3>Guarantors</h3>
+          <a-row :gutter="16"><a-col v-for="g in plan.guarantors" :key="g.id" :span="12">
+            <p>{{ g.full_name }} · {{ g.father_name }} · {{ g.cnic_number }} · {{ g.mobile_number }}</p><p>{{ g.address }}</p>
+            <img :src="`/api/installment-documents/guarantor-front/${g.id}`" alt="Guarantor CNIC front" style="width:140px;margin-right:8px" />
+            <img :src="`/api/installment-documents/guarantor-back/${g.id}`" alt="Guarantor CNIC back" style="width:140px" />
+          </a-col></a-row>
+          <h3>Payment history</h3>
+          <a-table :data-source="paymentHistory" :pagination="false" row-key="id" size="small" :columns="paymentColumns">
+            <template #bodyCell="{column,record}">
+              <template v-if="column.key==='scheduled'">{{ planMoney(record.installment?.amount) }}</template>
+              <template v-else-if="column.key==='received'">{{ planMoney(record.montant) }}</template>
+              <template v-else-if="column.key==='remaining'">{{ planMoney(record.remaining_balance) }}</template>
+              <template v-else-if="column.key==='method'">{{ record.installment_payment_method || record.payment_method?.name || '—' }}</template>
+              <template v-else-if="column.key==='staff'">{{ record.user?.username || '—' }}</template>
+              <template v-else-if="column.key==='when'">{{ dateTime(record.created_at || record.date) }}</template>
+            </template>
+          </a-table>
+        </template>
+        <template v-else>
+          <p>This sale has no installment plan.</p>
+          <a-button v-if="Number(sale.due)>0" type="primary" @click="planOpen=true">Create installment plan</a-button>
+        </template>
+      </a-card>
+
+      <a-modal v-model:open="planOpen" title="Create installment plan" :confirm-loading="savingPlan" @ok="createPlan">
+        <a-form layout="vertical">
+          <a-form-item label="Advance payment"><a-input-number v-model:value="planForm.advance" :min="0" :max="Number(sale.GrandTotal)" style="width:100%" /></a-form-item>
+          <a-form-item label="Number of installments"><a-input-number v-model:value="planForm.count" :min="1" :max="120" style="width:100%" /></a-form-item>
+          <a-form-item label="First due date"><a-date-picker v-model:value="planForm.firstDue" value-format="YYYY-MM-DD" style="width:100%" /></a-form-item>
+          <div v-for="(g,i) in planForm.guarantors" :key="i"><h3>Guarantor {{ i+1 }}</h3>
+            <a-input v-model:value="g.full_name" placeholder="Full name" style="margin-bottom:6px"/><a-input v-model:value="g.father_name" placeholder="Father's name" style="margin-bottom:6px"/>
+            <a-input v-model:value="g.cnic_number" placeholder="CNIC number" style="margin-bottom:6px"/><a-input v-model:value="g.mobile_number" placeholder="Mobile number" style="margin-bottom:6px"/>
+            <a-textarea v-model:value="g.address" placeholder="Address" style="margin-bottom:6px"/>
+            CNIC front <input type="file" accept="image/*" @change="selectGuarantorImage(g,'cnic_front',$event)" /> CNIC back <input type="file" accept="image/*" @change="selectGuarantorImage(g,'cnic_back',$event)" />
+            <div style="display:flex;gap:8px;margin:8px 0"><img v-if="g.cnic_front_preview" :src="g.cnic_front_preview" alt="Guarantor CNIC front preview" style="width:120px;max-height:90px;object-fit:contain"/><img v-if="g.cnic_back_preview" :src="g.cnic_back_preview" alt="Guarantor CNIC back preview" style="width:120px;max-height:90px;object-fit:contain"/></div>
+          </div>
+        </a-form>
+      </a-modal>
+      <a-modal v-model:open="paymentOpen" title="Record installment payment" :confirm-loading="savingPayment" @ok="savePayment">
+        <p>Installment {{ selectedInstallment?.number }} · Remaining {{ docMoney(Number(selectedInstallment?.amount || 0)-Number(selectedInstallment?.paid_amount || 0)) }}</p>
+        <a-form layout="vertical"><a-form-item label="Amount received"><a-input-number v-model:value="paymentForm.amount" :min="0.01" style="width:100%" /></a-form-item>
+          <a-form-item label="Payment method"><a-select v-model:value="paymentForm.method" :options="paymentMethods" /></a-form-item>
+          <a-form-item label="Transaction reference"><a-input v-model:value="paymentForm.reference" /></a-form-item>
+        </a-form>
+      </a-modal>
+
       <div v-if="company.is_invoice_footer && company.invoice_footer" class="inv-footer">
         {{ company.invoice_footer }}
       </div>
@@ -226,6 +290,44 @@ const company = ref({});
 const sendingEmail = ref(false);
 const sendingSms = ref(false);
 const downloadingPdf = ref(false);
+const plan = ref(null);
+const planOpen = ref(false);
+const savingPlan = ref(false);
+const paymentOpen = ref(false);
+const savingPayment = ref(false);
+const selectedInstallment = ref(null);
+const planForm = ref({ advance: 0, count: 3, firstDue: new Date().toISOString().slice(0, 10), guarantors: [emptyGuarantor(), emptyGuarantor()] });
+const paymentForm = ref({ amount: null, method: 'Cash', reference: '' });
+const paymentMethods = ['Cash','Bank Transfer','Easypaisa','JazzCash','Bank Deposit','Online Transfer','Other'].map(value => ({label:value,value}));
+const installmentColumns = [
+  {title:'#',dataIndex:'number',key:'number'}, {title:'Due date',dataIndex:'due_date',key:'due_date'},
+  {title:'Amount',key:'amount',align:'right'}, {title:'Paid',key:'paid',align:'right'},
+  {title:'Balance',key:'balance',align:'right'}, {title:'Status',dataIndex:'status',key:'status'}, {title:'',key:'action'},
+];
+const paymentColumns = [
+  {title:'Date/time',key:'when'}, {title:'Installment #',dataIndex:['installment','number'],key:'number'},
+  {title:'Scheduled',key:'scheduled'}, {title:'Received',key:'received'}, {title:'Remaining',key:'remaining'},
+  {title:'Method',key:'method'}, {title:'Reference',dataIndex:'transaction_reference',key:'reference'}, {title:'Received by',key:'staff'},
+];
+const paymentHistory = computed(() => (plan.value?.installments || []).flatMap(installment => {
+  let paid = 0;
+  return [...(installment.payments || [])]
+    .sort((a,b) => String(a.created_at || a.date).localeCompare(String(b.created_at || b.date)))
+    .map(payment => {
+      paid += Number(payment.montant) || 0;
+      return {...payment, installment, remaining_balance:Math.max(0, Number(installment.amount) - paid)};
+    });
+}).sort((a,b) => String(b.created_at || b.date).localeCompare(String(a.created_at || a.date))));
+const planMoney = value => docMoney((Number(value) || 0) * (Number(sale.value.currency_rate) || 1));
+function emptyGuarantor() { return {full_name:'',father_name:'',cnic_number:'',mobile_number:'',address:'',cnic_front:null,cnic_back:null}; }
+function selectGuarantorImage(guarantor, key, event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  guarantor[key] = file;
+  const previewKey = `${key}_preview`;
+  if (guarantor[previewKey]?.startsWith('blob:')) URL.revokeObjectURL(guarantor[previewKey]);
+  guarantor[previewKey] = URL.createObjectURL(file);
+}
 
 const num = v => {
   const n = Number(v);
@@ -255,6 +357,60 @@ const itemColumns = computed(() => [
 
 function printInvoice() {
   window.print();
+}
+
+function openPayment(installment) {
+  selectedInstallment.value = installment;
+  paymentForm.value = {amount:null, method:'Cash', reference:'', requestKey:crypto.randomUUID()};
+  paymentOpen.value = true;
+}
+
+async function createPlan() {
+  const f = planForm.value;
+  if (!f.firstDue || !f.count || f.guarantors.some(g => !g.full_name || !g.father_name || !g.cnic_number || !g.mobile_number || !g.address || !g.cnic_front || !g.cnic_back)) {
+    message.error('Enter the schedule and all details and CNIC images for both guarantors.'); return;
+  }
+  savingPlan.value = true;
+  try {
+    const rate = Number(sale.value.currency_rate) || 1;
+    const advance = Number(f.advance || 0) / rate;
+    const due = (Number(sale.value.GrandTotal) - Number(f.advance || 0)) / rate;
+    const total = Math.round(due * 1000) / 1000;
+    const count = Number(f.count);
+    const each = Math.floor((total / count) * 1000) / 1000;
+    const installments = Array.from({length:count}, (_,i) => {
+      const date = new Date(`${f.firstDue}T12:00:00`); date.setMonth(date.getMonth()+i);
+      return {due_date:date.toISOString().slice(0,10),amount:i===count-1 ? Math.round((total-each*(count-1))*1000)/1000 : each};
+    });
+    const data = new FormData();
+    data.append('client_id', sale.value.client_id); data.append('advance_amount', advance);
+    installments.forEach((row,i) => { data.append(`installments[${i}][due_date]`,row.due_date); data.append(`installments[${i}][amount]`,row.amount); });
+    f.guarantors.forEach((g,i) => Object.entries(g).forEach(([key,value]) => { if (!key.endsWith('_preview') && value !== null) data.append(`guarantors[${i}][${key}]`,value); }));
+    const result = await http.postForm(`sales/${sale.value.id}/installments`,data);
+    plan.value = result.plan;
+    planOpen.value = false;
+    message.success('Installment plan saved.');
+  } catch (e) { message.error(e?.data?.message || 'Could not save installment plan.'); }
+  finally { savingPlan.value = false; }
+}
+
+async function savePayment() {
+  if (!selectedInstallment.value || !(Number(paymentForm.value.amount) > 0)) return;
+  savingPayment.value = true;
+  try {
+    const result = await http.post(`sales/${sale.value.id}/installments/${selectedInstallment.value.id}/payments`, {
+      amount: Number(paymentForm.value.amount) / (Number(sale.value.currency_rate) || 1), method:paymentForm.value.method,
+      transaction_reference:paymentForm.value.reference || null, request_key:paymentForm.value.requestKey,
+    });
+    const [data, refreshed] = await Promise.all([
+      http.get(`sales/${sale.value.id}/installments`),
+      http.get(`sales/${sale.value.id}`),
+    ]);
+    plan.value = data.plan;
+    sale.value = {...refreshed.sale, currency_rate: sale.value.currency_rate};
+    paymentOpen.value = false; message.success('Payment recorded.');
+  } catch (e) { message.error(e?.data?.message || 'Could not record payment.'); }
+  finally { savingPayment.value = false; }
 }
 
 // Same endpoints as legacy detail_sale.vue.
@@ -319,6 +475,9 @@ onMounted(async () => {
     sale.value = data.sale || {};
     details.value = data.details || [];
     company.value = data.company || {};
+    const installmentData = await http.get(`sales/${route.params.id}/installments`);
+    sale.value = {...sale.value, currency_rate: sale.value.currency_rate || installmentData.sale?.exchange_rate || 1};
+    plan.value = installmentData.plan || null;
   } catch (e) {
     message.error(t('InvalidData'));
     router.push('/sales');

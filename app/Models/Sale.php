@@ -110,6 +110,11 @@ class Sale extends Model
         return $this->hasMany('App\Models\SaleDocument', 'sale_id');
     }
 
+    public function installmentPlan()
+    {
+        return $this->hasOne(InstallmentPlan::class);
+    }
+
     protected static function booted()
     {
         static::updating(function ($sale) {

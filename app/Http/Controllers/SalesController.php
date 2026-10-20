@@ -1537,6 +1537,12 @@ class SalesController extends BaseController
         $sale_details['tax_rate'] = $sale_data->tax_rate;
         $sale_details['TaxNet'] = $sale_data->TaxNet * $docCurrency['rate'];
         $sale_details['client_name'] = $sale_data['client']->name;
+        $sale_details['client_id'] = $sale_data->client_id;
+        $sale_details['client_father_name'] = $sale_data->client->father_name;
+        $sale_details['client_cnic_number'] = $sale_data->client->cnic_number;
+        $sale_details['client_has_photo'] = (bool) $sale_data->client->photo_path;
+        $sale_details['client_has_cnic_front'] = (bool) $sale_data->client->cnic_front_path;
+        $sale_details['client_has_cnic_back'] = (bool) $sale_data->client->cnic_back_path;
         $sale_details['client_phone'] = $sale_data['client']->phone;
         $sale_details['client_adr'] = $sale_data['client']->adresse;
         $sale_details['client_email'] = $sale_data['client']->email;

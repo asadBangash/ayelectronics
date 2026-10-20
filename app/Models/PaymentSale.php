@@ -13,6 +13,7 @@ class PaymentSale extends Model
 
     protected $fillable = [
         'sale_id', 'date', 'montant', 'Ref', 'change', 'payment_method_id', 'user_id', 'notes', 'account_id',
+        'installment_id', 'transaction_reference', 'installment_payment_method', 'installment_request_key',
     ];
 
     protected $casts = [
@@ -42,5 +43,10 @@ class PaymentSale extends Model
     public function sale()
     {
         return $this->belongsTo('App\Models\Sale');
+    }
+
+    public function installment()
+    {
+        return $this->belongsTo(Installment::class);
     }
 }
