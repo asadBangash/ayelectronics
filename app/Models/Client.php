@@ -11,6 +11,9 @@ class Client extends Model
     protected $fillable = [
         'firstname', 'lastname',
         'name', 'code', 'adresse', 'email', 'phone', 'country', 'city', 'state', 'zip', 'tax_number',
+        'cnic', 'whatsapp', 'phone_secondary', 'area', 'occupation',
+        'photo_path', 'cnic_front_path', 'cnic_back_path',
+        'overdue_rating', 'overdue_rating_at',
         'is_royalty_eligible', 'points', 'opening_balance', 'credit_limit',
         'woocommerce_id',
         'sync_issue_type', 'sync_issue_message', 'sync_issue_source', 'sync_issue_at',
@@ -24,7 +27,18 @@ class Client extends Model
         'opening_balance' => 'double',
         'credit_limit' => 'double',
         'sync_issue_at' => 'datetime',
+        'overdue_rating_at' => 'datetime',
     ];
+
+    public function documents()
+    {
+        return $this->hasMany(ClientDocument::class);
+    }
+
+    public function installmentPlans()
+    {
+        return $this->hasMany(InstallmentPlan::class);
+    }
 
     /**
      * Get custom field values for this client

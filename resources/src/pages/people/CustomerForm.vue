@@ -36,6 +36,31 @@
             </a-form-item>
           </a-col>
           <a-col :xs="24" :md="12">
+            <a-form-item label="CNIC" name="cnic">
+              <a-input v-model:value="form.cnic" placeholder="12345-1234567-1" />
+            </a-form-item>
+          </a-col>
+          <a-col :xs="24" :md="12">
+            <a-form-item label="WhatsApp" name="whatsapp">
+              <a-input v-model:value="form.whatsapp" placeholder="03xx-xxxxxxx" />
+            </a-form-item>
+          </a-col>
+          <a-col :xs="24" :md="12">
+            <a-form-item label="Secondary phone" name="phone_secondary">
+              <a-input v-model:value="form.phone_secondary" />
+            </a-form-item>
+          </a-col>
+          <a-col :xs="24" :md="12">
+            <a-form-item label="Area" name="area">
+              <a-input v-model:value="form.area" />
+            </a-form-item>
+          </a-col>
+          <a-col :xs="24" :md="12">
+            <a-form-item label="Occupation" name="occupation">
+              <a-input v-model:value="form.occupation" />
+            </a-form-item>
+          </a-col>
+          <a-col :xs="24" :md="12">
             <a-form-item :label="$t('Email')" name="email">
               <a-input v-model:value="form.email" type="email" :placeholder="$t('Enter_Email')" />
             </a-form-item>
@@ -146,7 +171,8 @@ function selectImage(key, event) {
 function previewFor(key) { return previews.value[key] || ''; }
 
 const emptyForm = () => ({
-  firstname: '', lastname: '', name: '', father_name: '', cnic_number: '', email: '', phone: '', tax_number: '',
+  firstname: '', lastname: '', name: '', email: '', phone: '', tax_number: '',
+  cnic: '', whatsapp: '', phone_secondary: '', area: '', occupation: '',
   country: '', city: '', state: '', zip: '', adresse: '',
   opening_balance: 0, credit_limit: 0, is_royalty_eligible: false,
 });

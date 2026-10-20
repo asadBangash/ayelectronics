@@ -177,6 +177,8 @@ class AuthServiceProvider extends ServiceProvider
         'App\Models\MailchimpSetting' => 'App\Policies\MailchimpSettingPolicy',
         'App\Models\JumiaSetting' => 'App\Policies\JumiaSettingPolicy',
 
+        'App\Models\InstallmentPlan' => 'App\Policies\InstallmentPolicy',
+
     ];
 
     /**
