@@ -60,6 +60,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
 import { message } from 'ant-design-vue';
+// message used for setup / error hints when API returns not-ready
 import http from '../../lib/http';
 import { useAuthStore } from '../../stores/auth';
 
@@ -98,10 +99,14 @@ function ratingColor(level) {
 async function load() {
   if (!props.saleId) return;
   try {
-    const { data } = await http.get(`installments/sales/${props.saleId}/details`);
-    bundle.value = data;
+    const data = await http.get(`installments/sales/${props.saleId}/details`);
+    if (data?.ready === false && data?.message) {
+      message.warning(data.message);
+    }
+    bundle.value = data?.ready === false ? { installment_plan: null, schedule: [], guarantors: [], payments: [], whatsapp_history: [], client_rating: { level: 'green', label: '' }, client: {} } : data;
   } catch (e) {
     bundle.value = null;
+    message.error(e?.data?.message || 'Installment module failed to load (run migrate + seed on server).');
   }
 }
 

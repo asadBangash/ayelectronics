@@ -19,12 +19,30 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use App\Support\InstallmentModule;
 
 class InstallmentController extends BaseController
 {
+    public function status(Request $request)
+    {
+        return response()->json([
+            'ready' => InstallmentModule::isReady(),
+            'hint' => InstallmentModule::isReady() ? null : InstallmentModule::setupHint(),
+        ]);
+    }
+
+    protected function ensureModuleReady()
+    {
+        if (! InstallmentModule::isReady()) {
+            abort(503, InstallmentModule::setupHint());
+        }
+    }
+
     public function dashboard(Request $request)
     {
+        $this->ensureModuleReady();
         $this->authorizeForUser($request->user('api'), 'viewAny', InstallmentPlan::class);
 
         $today = Carbon::today();
@@ -80,10 +98,24 @@ class InstallmentController extends BaseController
 
     public function saleDetails(Request $request, $saleId)
     {
+        if (! InstallmentModule::isReady()) {
+            return response()->json([
+                'ready' => false,
+                'message' => InstallmentModule::setupHint(),
+                'sale' => null,
+                'installment_plan' => null,
+                'schedule' => [],
+                'guarantors' => [],
+                'payments' => [],
+                'whatsapp_history' => [],
+            ], 200);
+        }
+
         $this->authorizeForUser($request->user('api'), 'view', InstallmentPlan::class);
         $this->authorizeForUser($request->user('api'), 'view', Sale::class);
 
-        $sale = Sale::with([
+        try {
+            $sale = Sale::with([
             'client.documents',
             'details.product',
             'facture.payment_method',
@@ -101,20 +133,30 @@ class InstallmentController extends BaseController
             ->whereIn('auditable_id', $sale->installmentPlan ? [$sale->installmentPlan->id] : [])
             ->orderByDesc('id')->limit(30)->get();
 
-        return response()->json([
-            'sale' => $sale,
-            'client' => $client,
-            'client_rating' => [
-                'level' => $client->overdue_rating ?? 'green',
-                'label' => $ratingService->labelForLevel($client->overdue_rating ?? 'green'),
-            ],
-            'installment_plan' => $sale->installmentPlan,
-            'schedule' => $sale->installmentPlan?->scheduleItems ?? [],
-            'guarantors' => $sale->saleGuarantors,
-            'payments' => $payments,
-            'whatsapp_history' => $whatsappHistory,
-            'audit_logs' => $audit,
-        ]);
+            return response()->json([
+                'ready' => true,
+                'sale' => $sale,
+                'client' => $client,
+                'client_rating' => [
+                    'level' => $client->overdue_rating ?? 'green',
+                    'label' => $ratingService->labelForLevel($client->overdue_rating ?? 'green'),
+                ],
+                'installment_plan' => $sale->installmentPlan,
+                'schedule' => $sale->installmentPlan?->scheduleItems ?? [],
+                'guarantors' => $sale->saleGuarantors,
+                'payments' => $payments,
+                'whatsapp_history' => $whatsappHistory,
+                'audit_logs' => $audit,
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'ready' => false,
+                'message' => 'Installment data could not be loaded. Check storage/logs/laravel.log. '
+                    .InstallmentModule::setupHint(),
+            ], 500);
+        }
     }
 
     public function createPlan(Request $request, $saleId)

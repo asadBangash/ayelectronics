@@ -13,11 +13,19 @@ class InstallmentPolicy
     protected function allows(User $user, string $permissionName): bool
     {
         $permission = Permission::where('name', $permissionName)->first();
-        if (! $permission) {
-            return false;
+        if ($permission) {
+            return $user->hasRole($permission->roles);
         }
 
-        return $user->hasRole($permission->roles);
+        // Fresh installs that have not run InstallmentPermissionsSeeder yet:
+        // allow users who can view sales to read installment data (not settings).
+        if (in_array($permissionName, ['Installments_view', 'Installments_add', 'Installments_kyc_documents'], true)) {
+            $salesView = Permission::where('name', 'Sales_view')->first();
+
+            return $salesView && $user->hasRole($salesView->roles);
+        }
+
+        return false;
     }
 
     public function viewAny(User $user): bool

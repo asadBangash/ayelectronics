@@ -1241,6 +1241,7 @@ Route::middleware(['auth:api', 'Is_Active', 'request.safety', 'token.timeout'])-
     Route::get('get_today_sales', 'SalesController@get_today_sales');
 
     // ------------------------------- Installments --------------------------\\
+    Route::get('installments/status', 'InstallmentController@status');
     Route::get('installments/dashboard', 'InstallmentController@dashboard');
     Route::get('installments/settings', 'InstallmentController@settings');
     Route::put('installments/settings', 'InstallmentController@updateSettings');
