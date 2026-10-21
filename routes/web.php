@@ -461,6 +461,12 @@ Route::get('session/keepalive', function () {
 Route::get('sitemap.xml', [\App\Http\Controllers\SitemapController::class, 'index'])->name('store.sitemap');
 Route::get('robots.txt', [\App\Http\Controllers\SitemapController::class, 'robots'])->name('store.robots');
 
+// Shared hosting: when public/storage symlink cannot be created, serve uploads here.
+Route::get('storage/{path}', [\App\Http\Controllers\PublicStorageController::class, 'show'])
+    ->where('path', '.*')
+    ->middleware('web')
+    ->name('storage.public.fallback');
+
 Route::group(['middleware' => ['web', 'auth:web', 'Is_Active', 'request.safety']], function () {
 
     // The Vue 2 admin SPA has been retired (its bundle no longer exists). Any

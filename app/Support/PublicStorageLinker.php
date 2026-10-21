@@ -2,11 +2,17 @@
 
 namespace App\Support;
 
+use Illuminate\Support\Facades\File;
+
 /**
  * Create public/storage without shell exec() (shared hosts / Windows php.ini).
  */
 final class PublicStorageLinker
 {
+    public static function needsWebFallback(): bool
+    {
+        return ! self::alreadyLinked(public_path('storage'), storage_path('app/public'));
+    }
     /** @return list<string> */
     public static function requiredStorageDirectories(): array
     {
@@ -162,6 +168,41 @@ final class PublicStorageLinker
             return 'setup-storage.bat  (from project root; uses mklink /J, no admin on most PCs)';
         }
 
-        return 'rm -rf '.escapeshellarg($linkPath).' && ln -s '.escapeshellarg($relativeTarget).' '.escapeshellarg($linkPath);
+        $root = str_replace('\\', '/', base_path());
+
+        return 'cd '.escapeshellarg($root).' && rm -rf public/storage && ln -s '.escapeshellarg($root.'/storage/app/public').' public/storage';
+    }
+
+    /**
+     * Copy storage/app/public into public/storage (when symlinks are forbidden).
+     */
+    public static function mirror(bool $force = false): array
+    {
+        self::ensureDirectories();
+
+        $link = public_path('storage');
+        $target = storage_path('app/public');
+
+        if (is_link($link)) {
+            if (self::alreadyLinked($link, $target)) {
+                return ['ok' => true, 'message' => 'already_linked'];
+            }
+            if (! $force) {
+                return ['ok' => false, 'message' => 'exists'];
+            }
+            @unlink($link);
+        }
+
+        if (is_dir($link)) {
+            if (! $force && count(scandir($link) ?: []) > 2) {
+                return ['ok' => false, 'message' => 'exists'];
+            }
+            File::deleteDirectory($link);
+        }
+
+        mkdir($link, 0755, true);
+        File::copyDirectory($target, $link);
+
+        return ['ok' => true, 'message' => 'mirrored'];
     }
 }

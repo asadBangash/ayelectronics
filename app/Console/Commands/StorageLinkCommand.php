@@ -40,9 +40,11 @@ class StorageLinkCommand extends LaravelStorageLinkCommand
 
             $this->components->error("Could not create the link [$link].");
             if ($result['shell_hint']) {
-                $this->line('Try manually:');
+                $this->line('Best fix — run in SSH:');
                 $this->comment('  '.$result['shell_hint']);
             }
+            $this->line('Or: php artisan app:ensure-storage --mirror --force');
+            $this->line('Uploads still work via Laravel /storage fallback when no symlink exists.');
         }
     }
 }
