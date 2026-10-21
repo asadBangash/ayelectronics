@@ -81,6 +81,8 @@ app.component('apexchart', defineAsyncComponent(() => import('vue3-apexcharts'))
 Promise.allSettled([loadLocale(storedLocale()), router.isReady()]).then(() => {
     // Booted fine — arm the chunk-failure reload again for the next deploy.
     sessionStorage.removeItem('stocky-chunk-reload');
+    sessionStorage.removeItem('stocky-auth-retry');
+    window.__stockyNextMounted = true;
     app.mount('#vue3-app');
     // Pre-cache every built chunk in the service worker (delayed, best-effort)
     // so an offline reload can open screens that were never visited.

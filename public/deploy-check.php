@@ -32,6 +32,19 @@ $lines[] = '.env file: '.$ok(is_file($root.'/.env'));
 $lines[] = 'public/index.php: '.$ok(is_file(__DIR__.'/index.php'));
 $lines[] = 'storefront CSS (public/js/storefront.css): '.$ok(is_file(__DIR__.'/js/storefront.css'));
 $lines[] = 'storefront JS (public/js/storefront.min.js): '.$ok(is_file(__DIR__.'/js/storefront.min.js'));
+$manifestPath = __DIR__.'/js/.vite/manifest.json';
+$lines[] = 'admin Vite manifest (public/js/.vite/manifest.json): '.$ok(is_file($manifestPath));
+if (is_file($manifestPath)) {
+    $manifest = json_decode(file_get_contents($manifestPath), true) ?: [];
+    $entryFile = null;
+    foreach ($manifest as $item) {
+        if (! empty($item['isEntry'])) {
+            $entryFile = $item['file'] ?? null;
+            break;
+        }
+    }
+    $lines[] = 'admin entry JS: '.($entryFile ? $entryFile.' '.$ok(is_file(__DIR__.'/js/'.$entryFile)) : 'NOT FOUND in manifest');
+}
 $lines[] = 'storage writable: '.$ok(is_writable($root.'/storage'));
 $lines[] = 'bootstrap/cache writable: '.$ok(is_writable($root.'/bootstrap/cache'));
 

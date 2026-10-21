@@ -109,10 +109,38 @@
     <script src="/assets_setup/js/qrcode.js"></script>
 
     @if ($entry)
-      <script type="module" src="/js/{{ $entry['file'] }}"></script>
+      <script type="module" src="/js/{{ $entry['file'] }}" id="stocky-next-entry"></script>
+      <script>
+        (function () {
+          var el = document.getElementById('stocky-next-entry');
+          if (!el) return;
+          el.addEventListener('error', function () {
+            var box = document.getElementById('vue3-app');
+            if (!box) return;
+            box.innerHTML = '<div style="font-family:sans-serif;padding:32px;max-width:640px;margin:0 auto;line-height:1.5">'
+              + '<h2 style="margin:0 0 12px">Admin app failed to load</h2>'
+              + '<p>The JavaScript bundle is missing or outdated on the server.</p>'
+              + '<p>On the server run: <code>npm ci && npm run build:admin</code></p>'
+              + '<p>Then hard-refresh. Entry expected: <code>/js/{{ $entry['file'] }}</code></p>'
+              + '<p><a href="/logout">Sign out</a> · <a href="/login">Login</a></p></div>';
+          });
+          setTimeout(function () {
+            if (!window.__stockyNextMounted) {
+              var box = document.getElementById('vue3-app');
+              if (!box || !box.querySelector('.boot-loader')) return;
+              box.innerHTML = '<div style="font-family:sans-serif;padding:32px;max-width:640px;margin:0 auto;line-height:1.5">'
+                + '<h2 style="margin:0 0 12px">Admin app is still loading…</h2>'
+                + '<p>Open DevTools → Network and check:</p>'
+                + '<ul><li><code>/js/{{ $entry['file'] }}</code> (must be 200)</li>'
+                + '<li><code>/api/get_user_auth</code> (must be 200 when logged in)</li></ul>'
+                + '<p>Rebuild: <code>npm run build:admin</code> · Clear cookies or <a href="/logout">sign out</a></p></div>';
+            }
+          }, 45000);
+        })();
+      </script>
     @else
       <p style="font-family: sans-serif; padding: 24px">
-        Stocky Next assets are not built yet. Run <code>npm run vue3:build</code>.
+        Stocky Next assets are not built yet. Run <code>npm run build:admin</code> (or <code>npm run vue3:build</code>).
       </p>
     @endif
 

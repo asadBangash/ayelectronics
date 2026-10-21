@@ -54,7 +54,15 @@ async function request(method, url, { params, body, formData, raw } = {}) {
     });
 
     if (res.status === 401 || res.status === 419) {
-        window.location.href = '/login';
+        // Stale web session without a valid API token loops login → /next → 401.
+        const retryKey = 'stocky-auth-retry';
+        if (sessionStorage.getItem(retryKey) === '1') {
+            sessionStorage.removeItem(retryKey);
+            window.location.href = '/logout';
+        } else {
+            sessionStorage.setItem(retryKey, '1');
+            window.location.href = '/login';
+        }
         throw new Error('Unauthenticated');
     }
     if (!res.ok) {
