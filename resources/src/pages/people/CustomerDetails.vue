@@ -26,11 +26,21 @@
           <a-descriptions-item :label="$t('Code')">{{ client.code }}</a-descriptions-item>
           <a-descriptions-item :label="$t('Email')">{{ client.email || '-' }}</a-descriptions-item>
           <a-descriptions-item :label="$t('Phone')">{{ client.phone || '-' }}</a-descriptions-item>
+          <a-descriptions-item label="Father's name">{{ client.father_name || '-' }}</a-descriptions-item>
+          <a-descriptions-item label="CNIC number">{{ client.cnic_number || '-' }}</a-descriptions-item>
           <a-descriptions-item :label="$t('City')">{{ client.city || '-' }}</a-descriptions-item>
           <a-descriptions-item :label="$t('Country')">{{ client.country || '-' }}</a-descriptions-item>
           <a-descriptions-item :label="$t('Tax_Number')">{{ client.tax_number || '-' }}</a-descriptions-item>
           <a-descriptions-item :label="$t('Credit_Limit')">{{ creditLimitText }}</a-descriptions-item>
         </a-descriptions>
+      </a-card>
+
+      <a-card v-if="client?.photo_path || client?.cnic_front_path || client?.cnic_back_path" title="Customer identity documents" size="small" style="margin-bottom:16px">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start">
+          <div v-if="client.photo_path"><div>Photograph</div><img :src="`/api/installment-documents/customer-photo/${client.id}`" alt="Customer photograph" style="width:140px;max-height:160px;object-fit:contain" /></div>
+          <div v-if="client.cnic_front_path"><div>CNIC front</div><img :src="`/api/installment-documents/customer-front/${client.id}`" alt="Customer CNIC front" style="width:220px;max-height:150px;object-fit:contain" /></div>
+          <div v-if="client.cnic_back_path"><div>CNIC back</div><img :src="`/api/installment-documents/customer-back/${client.id}`" alt="Customer CNIC back" style="width:220px;max-height:150px;object-fit:contain" /></div>
+        </div>
       </a-card>
 
       <a-row :gutter="[16, 16]" style="margin-bottom: 16px">

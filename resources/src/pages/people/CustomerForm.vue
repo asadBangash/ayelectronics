@@ -27,6 +27,8 @@
               <a-input v-model:value="form.name" :placeholder="$t('Enter_Customer_Name')" />
             </a-form-item>
           </a-col>
+          <a-col :xs="24" :md="12"><a-form-item label="Father's name"><a-input v-model:value="form.father_name" /></a-form-item></a-col>
+          <a-col :xs="24" :md="12"><a-form-item label="CNIC number"><a-input v-model:value="form.cnic_number" /></a-form-item></a-col>
           <a-col :xs="24" :md="12">
             <a-form-item :label="$t('Phone')" name="phone" :validate-status="phoneDup ? 'warning' : undefined"
               :help="phoneDup ? $t('Phone_Already_Registered') : undefined">
@@ -94,6 +96,12 @@
               <a-textarea v-model:value="form.adresse" :rows="2" :placeholder="$t('Enter_Address')" />
             </a-form-item>
           </a-col>
+          <a-col v-for="image in identityImages" :key="image.key" :xs="24" :md="8">
+            <a-form-item :label="image.label">
+              <input type="file" accept="image/*" @change="selectImage(image.key, $event)" />
+              <img v-if="previewFor(image.key)" :src="previewFor(image.key)" :alt="image.label" style="display:block;max-width:180px;max-height:140px;margin-top:8px;object-fit:contain" />
+            </a-form-item>
+          </a-col>
 
           <a-col :xs="24" :md="8">
             <a-form-item :label="$t('Opening_Balance')" name="opening_balance">
@@ -146,6 +154,21 @@ const loadingRecord = ref(false);
 const submitting = ref(false);
 const phoneDup = ref(false);
 const formRef = ref();
+const identityImages = [
+  { key: 'customer_photo', label: 'Customer photograph' },
+  { key: 'cnic_front', label: 'CNIC front image' },
+  { key: 'cnic_back', label: 'CNIC back image' },
+];
+const selectedImages = ref({});
+const previews = ref({});
+function selectImage(key, event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  selectedImages.value[key] = file;
+  if (previews.value[key]?.startsWith('blob:')) URL.revokeObjectURL(previews.value[key]);
+  previews.value[key] = URL.createObjectURL(file);
+}
+function previewFor(key) { return previews.value[key] || ''; }
 
 const emptyForm = () => ({
   firstname: '', lastname: '', name: '', email: '', phone: '', tax_number: '',
@@ -181,6 +204,13 @@ const body = () => ({
   credit_limit: parseFloat(form.value.credit_limit) || 0,
 });
 
+function multipartBody() {
+  const data = new FormData();
+  Object.entries(body()).forEach(([key, value]) => data.append(key, value ?? ''));
+  Object.entries(selectedImages.value).forEach(([key, file]) => data.append(key, file));
+  return data;
+}
+
 async function submit() {
   try {
     await formRef.value.validate();
@@ -190,7 +220,7 @@ async function submit() {
   submitting.value = true;
   try {
     if (isEdit.value) {
-      await http.put(`clients/${id.value}`, body());
+      await http.postForm(`clients/${id.value}`, (() => { const data = multipartBody(); data.append('_method', 'PUT'); return data; })());
       // opening_balance is not part of the update payload; sync it separately
       // when the admin changed the field.
       const newOpening = parseFloat(form.value.opening_balance) || 0;
@@ -200,7 +230,7 @@ async function submit() {
       }
       message.success(t('Successfully_Updated'));
     } else {
-      await http.post('clients', body());
+      await http.postForm('clients', multipartBody());
       message.success(t('Successfully_Created'));
     }
     router.push('/customers');
@@ -220,6 +250,11 @@ async function loadRecord() {
       ...emptyForm(),
       ...Object.fromEntries(Object.keys(emptyForm()).map(k => [k, c[k] ?? emptyForm()[k]])),
       is_royalty_eligible: !!c.is_royalty_eligible,
+    };
+    previews.value = {
+      ...(c.photo_path ? { customer_photo: `/api/installment-documents/customer-photo/${c.id}` } : {}),
+      ...(c.cnic_front_path ? { cnic_front: `/api/installment-documents/customer-front/${c.id}` } : {}),
+      ...(c.cnic_back_path ? { cnic_back: `/api/installment-documents/customer-back/${c.id}` } : {}),
     };
     loadedOpeningBalance.value = parseFloat(c.opening_balance) || 0;
   } catch (e) {

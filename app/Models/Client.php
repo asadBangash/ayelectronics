@@ -17,6 +17,7 @@ class Client extends Model
         'is_royalty_eligible', 'points', 'opening_balance', 'credit_limit',
         'woocommerce_id',
         'sync_issue_type', 'sync_issue_message', 'sync_issue_source', 'sync_issue_at',
+        'father_name', 'cnic_number', 'photo_path', 'cnic_front_path', 'cnic_back_path',
     ];
 
     protected $casts = [
