@@ -11,17 +11,35 @@ return new class extends Migration
         Schema::table('clients', function (Blueprint $table) {
             if (! Schema::hasColumn('clients', 'cnic')) {
                 $table->string('cnic', 15)->nullable()->after('phone');
-                $table->string('whatsapp', 20)->nullable()->after('cnic');
-                $table->string('phone_secondary', 20)->nullable()->after('whatsapp');
-                $table->string('area', 120)->nullable()->after('city');
-                $table->string('occupation', 191)->nullable()->after('area');
-                $table->string('photo_path', 255)->nullable()->after('occupation');
-                $table->string('cnic_front_path', 255)->nullable()->after('photo_path');
-                $table->string('cnic_back_path', 255)->nullable()->after('cnic_front_path');
-                $table->string('overdue_rating', 32)->default('green')->after('cnic_back_path');
-                $table->timestamp('overdue_rating_at')->nullable()->after('overdue_rating');
                 $table->index('cnic');
+            }
+            if (! Schema::hasColumn('clients', 'whatsapp')) {
+                $table->string('whatsapp', 20)->nullable()->after('phone');
+            }
+            if (! Schema::hasColumn('clients', 'phone_secondary')) {
+                $table->string('phone_secondary', 20)->nullable()->after('phone');
+            }
+            if (! Schema::hasColumn('clients', 'area')) {
+                $table->string('area', 120)->nullable()->after('city');
+            }
+            if (! Schema::hasColumn('clients', 'occupation')) {
+                $table->string('occupation', 191)->nullable()->after('city');
+            }
+            if (! Schema::hasColumn('clients', 'photo_path')) {
+                $table->string('photo_path', 255)->nullable();
+            }
+            if (! Schema::hasColumn('clients', 'cnic_front_path')) {
+                $table->string('cnic_front_path', 255)->nullable();
+            }
+            if (! Schema::hasColumn('clients', 'cnic_back_path')) {
+                $table->string('cnic_back_path', 255)->nullable();
+            }
+            if (! Schema::hasColumn('clients', 'overdue_rating')) {
+                $table->string('overdue_rating', 32)->default('green');
                 $table->index('overdue_rating');
+            }
+            if (! Schema::hasColumn('clients', 'overdue_rating_at')) {
+                $table->timestamp('overdue_rating_at')->nullable();
             }
         });
 

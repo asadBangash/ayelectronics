@@ -8,18 +8,27 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('clients', function (Blueprint $table) {
-            $table->string('father_name')->nullable();
-            $table->string('cnic_number', 32)->nullable();
-            $table->string('photo_path')->nullable();
-            $table->string('cnic_front_path')->nullable();
-            $table->string('cnic_back_path')->nullable();
+            if (! Schema::hasColumn('clients', 'father_name')) {
+                $table->string('father_name')->nullable();
+            }
+            if (! Schema::hasColumn('clients', 'cnic_number')) {
+                $table->string('cnic_number', 32)->nullable();
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('clients', function (Blueprint $table) {
-            $table->dropColumn(['father_name', 'cnic_number', 'photo_path', 'cnic_front_path', 'cnic_back_path']);
+            $cols = [];
+            foreach (['father_name', 'cnic_number'] as $col) {
+                if (Schema::hasColumn('clients', $col)) {
+                    $cols[] = $col;
+                }
+            }
+            if ($cols !== []) {
+                $table->dropColumn($cols);
+            }
         });
     }
 };
