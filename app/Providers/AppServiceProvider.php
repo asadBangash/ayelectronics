@@ -8,6 +8,7 @@ use App\Observers\PaymentSaleInstallmentObserver;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
+use Illuminate\Foundation\Console\StorageLinkCommand as LaravelStorageLinkCommand;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Passport\Console\ClientCommand;
 use Laravel\Passport\Console\InstallCommand;
@@ -34,6 +35,8 @@ class AppServiceProvider extends ServiceProvider
         // toggle lookup and the tier ladders are queried once, no matter how
         // many controllers, services and views ask for them.
         $this->app->singleton(\App\Services\WholesalePricingService::class);
+
+        $this->app->bind(LaravelStorageLinkCommand::class, \App\Console\Commands\StorageLinkCommand::class);
     }
 
     /**
