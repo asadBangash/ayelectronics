@@ -289,6 +289,13 @@ if ($installed === true) {
     // Backward compatibility: when the store base moved away from the default,
     // old /online_store links (bookmarks, emails, cached pages) 301-redirect to
     // the configured location, query string preserved.
+    // Public site home: send visitors to the storefront (admin stays at /login and /next).
+    if ($storePath !== '') {
+        Route::middleware(['web', 'store.enabled'])->get('/', function () use ($storePath) {
+            return redirect('/'.$storePath, 301);
+        });
+    }
+
     if ($storePath !== 'online_store') {
         Route::middleware('web')->any('online_store/{any?}', function ($any = null) {
             $qs = request()->getQueryString();
