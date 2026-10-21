@@ -30,6 +30,8 @@ $lines[] = '';
 $lines[] = 'vendor/autoload.php: '.$ok(is_file($root.'/vendor/autoload.php'));
 $lines[] = '.env file: '.$ok(is_file($root.'/.env'));
 $lines[] = 'public/index.php: '.$ok(is_file(__DIR__.'/index.php'));
+$lines[] = 'storefront CSS (public/js/storefront.css): '.$ok(is_file(__DIR__.'/js/storefront.css'));
+$lines[] = 'storefront JS (public/js/storefront.min.js): '.$ok(is_file(__DIR__.'/js/storefront.min.js'));
 $lines[] = 'storage writable: '.$ok(is_writable($root.'/storage'));
 $lines[] = 'bootstrap/cache writable: '.$ok(is_writable($root.'/bootstrap/cache'));
 

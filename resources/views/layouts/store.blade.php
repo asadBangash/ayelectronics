@@ -54,8 +54,11 @@
                   ? (Str::startsWith($avatar, ['http://','https://','/']) ? $avatar : asset($avatar))
                   : null;
 
-  $cssStore = asset('js/storefront.css') . '?v=' . @filemtime(public_path('js/storefront.css'));
-  $jsStore  = asset('js/storefront.min.js') . '?v=' . @filemtime(public_path('js/storefront.min.js'));
+  // Root-relative URLs so CSS/JS load on the live domain even if APP_URL is wrong.
+  $cssVer = @filemtime(public_path('js/storefront.css')) ?: '1';
+  $jsVer  = @filemtime(public_path('js/storefront.min.js')) ?: '1';
+  $cssStore = '/js/storefront.css?v='.$cssVer;
+  $jsStore  = '/js/storefront.min.js?v='.$jsVer;
 
   $rtlLocales = ['ar','he','fa','ur'];
   $isRtl = in_array(app()->getLocale(), $rtlLocales);
