@@ -7,16 +7,18 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Removes demo customers, sales, purchases, and related rows while keeping
- * users, roles, permissions, settings, store_settings (themes), and the
- * electronics catalog (EL-* products).
+ * users, roles, permissions, settings, and store_settings (themes).
  */
 class DemoDataCleaner
 {
+    /** Product codes created by ElectronicsDemoSeeder / other storefront demos. */
+    private const STORE_DEMO_PRODUCT_PREFIXES = ['EL-%', 'TY-%', 'GR-%'];
+
     /** @var array<string, int> */
     private array $counts = [];
 
     /**
-     * @param  array{all_documents?: bool, records_only?: bool}  $options
+     * @param  array{all_documents?: bool, records_only?: bool, products?: bool, customers?: bool, store?: bool}  $options
      * @return array<string, int>
      */
     public function run(array $options = []): array
@@ -24,15 +26,34 @@ class DemoDataCleaner
         $this->counts = [];
         $allDocuments = (bool) ($options['all_documents'] ?? false);
         $recordsOnly = (bool) ($options['records_only'] ?? false);
+        $clearProducts = (bool) ($options['products'] ?? false) || (bool) ($options['store'] ?? false);
+        $clearCustomers = (bool) ($options['customers'] ?? false) || (bool) ($options['store'] ?? false);
+        $catalogOnly = ($clearProducts || $clearCustomers)
+            && ! $allDocuments
+            && ! $recordsOnly
+            && ! (bool) ($options['with_transactions'] ?? false);
 
-        DB::transaction(function () use ($allDocuments, $recordsOnly) {
+        DB::transaction(function () use ($allDocuments, $recordsOnly, $clearProducts, $clearCustomers, $catalogOnly) {
             if ($allDocuments) {
                 $this->purgeAllDocuments();
             } elseif ($recordsOnly) {
                 $this->purgeDemoRecords();
+            } elseif ($catalogOnly) {
+                if ($clearProducts) {
+                    $this->purgeStoreDemoProducts();
+                }
+                if ($clearCustomers) {
+                    $this->purgeStoreDemoCustomers();
+                }
             } else {
                 $this->purgeDemoRecords();
                 $this->purgeSeededDemo();
+                if ($clearProducts) {
+                    $this->purgeStoreDemoProducts();
+                }
+                if ($clearCustomers) {
+                    $this->purgeStoreDemoCustomers();
+                }
             }
         });
 
@@ -177,6 +198,98 @@ class DemoDataCleaner
         }
     }
 
+    /** Electronics / Toys / Grocery storefront demo catalogs (EL-*, TY-*, GR-*). */
+    private function purgeStoreDemoProducts(): void
+    {
+        $productIds = DB::table('products')
+            ->where(function ($q) {
+                foreach (self::STORE_DEMO_PRODUCT_PREFIXES as $prefix) {
+                    $q->orWhere('code', 'like', $prefix);
+                }
+            })
+            ->pluck('id')
+            ->all();
+
+        $this->deleteProductsByIds($productIds);
+        $this->addCount('store_products', count($productIds));
+    }
+
+    /** Customers created by ElectronicsDemoSeeder / GroceryDemoSeeder (reviews, etc.). */
+    private function purgeStoreDemoCustomers(): void
+    {
+        $keep = $this->walkInClientIds();
+
+        $clientIds = DB::table('clients')
+            ->when($keep, fn ($q) => $q->whereNotIn('id', $keep))
+            ->where(function ($q) {
+                $q->whereBetween('code', [97001, 99999])
+                    ->orWhere(function ($q2) {
+                        $q2->where('email', 'like', '%@example.com')
+                            ->where('email', '!=', 'walk-in-customer@example.com');
+                    });
+            })
+            ->pluck('id')
+            ->all();
+
+        $this->deleteClientsByIds($clientIds);
+        $this->addCount('store_customers', count($clientIds));
+    }
+
+    /** @return array<int> */
+    private function walkInClientIds(): array
+    {
+        return DB::table('clients')
+            ->where('email', 'walk-in-customer@example.com')
+            ->orWhere('name', 'walk-in-customer')
+            ->pluck('id')
+            ->all();
+    }
+
+    /** @param  array<int>  $productIds */
+    private function deleteProductsByIds(array $productIds): void
+    {
+        if ($productIds === []) {
+            return;
+        }
+
+        foreach (array_chunk($productIds, 200) as $chunk) {
+            $saleIds = DB::table('sale_details')->whereIn('product_id', $chunk)->distinct()->pluck('sale_id')->all();
+            $this->deleteSalesByIds($saleIds);
+
+            $purchaseIds = DB::table('purchase_details')->whereIn('product_id', $chunk)->distinct()->pluck('purchase_id')->all();
+            $this->deletePurchasesByIds($purchaseIds);
+
+            $quotationIds = DB::table('quotation_details')->whereIn('product_id', $chunk)->distinct()->pluck('quotation_id')->all();
+            if ($quotationIds) {
+                DB::table('quotation_details')->whereIn('quotation_id', $quotationIds)->delete();
+                DB::table('quotations')->whereIn('id', $quotationIds)->delete();
+            }
+
+            if (Schema::hasTable('draft_sale_details') && Schema::hasTable('draft_sales')) {
+                $draftIds = DB::table('draft_sale_details')->whereIn('product_id', $chunk)->distinct()->pluck('draft_sale_id')->all();
+                if ($draftIds) {
+                    DB::table('draft_sale_details')->whereIn('draft_sale_id', $draftIds)->delete();
+                    DB::table('draft_sales')->whereIn('id', $draftIds)->delete();
+                }
+            }
+
+            if (Schema::hasTable('product_reviews')) {
+                DB::table('product_reviews')->whereIn('product_id', $chunk)->delete();
+            }
+
+            if (Schema::hasTable('product_variants')) {
+                DB::table('product_variants')->whereIn('product_id', $chunk)->delete();
+            }
+
+            DB::table('product_warehouse')->whereIn('product_id', $chunk)->delete();
+            if (Schema::hasTable('product_images')) {
+                DB::table('product_images')->whereIn('product_id', $chunk)->delete();
+            }
+
+            DB::table('products')->whereIn('id', $chunk)->delete();
+        }
+    }
+
     private function purgeAllDocuments(): void
     {
         $saleIds = DB::table('sales')->pluck('id')->all();
@@ -256,6 +369,18 @@ class DemoDataCleaner
         }
 
         foreach (array_chunk($clientIds, 500) as $chunk) {
+            $saleIds = DB::table('sales')->whereIn('client_id', $chunk)->pluck('id')->all();
+            $this->deleteSalesByIds($saleIds);
+
+            if (Schema::hasTable('product_reviews')) {
+                DB::table('product_reviews')->whereIn('client_id', $chunk)->delete();
+            }
+
+            if (Schema::hasTable('online_orders')) {
+                $orderIds = DB::table('online_orders')->whereIn('client_id', $chunk)->pluck('id')->all();
+                $this->deleteOnlineOrdersByIds($orderIds);
+            }
+
             if (Schema::hasTable('client_documents')) {
                 DB::table('client_documents')->whereIn('client_id', $chunk)->delete();
             }
@@ -354,6 +479,24 @@ class DemoDataCleaner
             if (Schema::hasTable('sale_guarantors')) {
                 DB::table('sale_guarantors')->whereIn('sale_id', $chunk)->delete();
             }
+        }
+    }
+
+    /** @param  array<int>  $orderIds */
+    private function deleteOnlineOrdersByIds(array $orderIds): void
+    {
+        if ($orderIds === [] || ! Schema::hasTable('online_orders')) {
+            return;
+        }
+
+        foreach (array_chunk($orderIds, 200) as $chunk) {
+            if (Schema::hasTable('store_coupon_redemptions')) {
+                DB::table('store_coupon_redemptions')->whereIn('online_order_id', $chunk)->delete();
+            }
+            if (Schema::hasTable('online_order_items')) {
+                DB::table('online_order_items')->whereIn('order_id', $chunk)->delete();
+            }
+            DB::table('online_orders')->whereIn('id', $chunk)->delete();
         }
     }
 
