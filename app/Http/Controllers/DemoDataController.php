@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Setting;
+use App\Support\DemoDataCleaner;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -148,40 +149,7 @@ class DemoDataController extends Controller
 
         $deleted = [];
         try {
-            DB::transaction(function () use (&$deleted) {
-                // Documents first (children before parents), entities last.
-                $saleIds = $this->demoIds('sales');
-                DB::table('payment_sales')->whereIn('sale_id', $saleIds)->delete();
-                DB::table('sale_details')->whereIn('sale_id', $saleIds)->delete();
-                $deleted['sales'] = DB::table('sales')->whereIn('id', $saleIds)->delete();
-
-                $purchaseIds = $this->demoIds('purchases');
-                DB::table('payment_purchases')->whereIn('purchase_id', $purchaseIds)->delete();
-                DB::table('purchase_details')->whereIn('purchase_id', $purchaseIds)->delete();
-                $deleted['purchases'] = DB::table('purchases')->whereIn('id', $purchaseIds)->delete();
-
-                $quotationIds = $this->demoIds('quotations');
-                DB::table('quotation_details')->whereIn('quotation_id', $quotationIds)->delete();
-                $deleted['quotations'] = DB::table('quotations')->whereIn('id', $quotationIds)->delete();
-
-                $deleted['expenses'] = DB::table('expenses')->whereIn('id', $this->demoIds('expenses'))->delete();
-
-                $productIds = $this->demoIds('products');
-                DB::table('product_warehouse')->whereIn('product_id', $productIds)->delete();
-                $deleted['products'] = DB::table('products')->whereIn('id', $productIds)->delete();
-
-                $deleted['clients'] = DB::table('clients')->whereIn('id', $this->demoIds('clients'))->delete();
-                $deleted['providers'] = DB::table('providers')->whereIn('id', $this->demoIds('providers'))->delete();
-
-                // Scaffolding created on demand (category, expense category,
-                // unit, warehouse) goes last — documents referenced it.
-                DB::table('categories')->whereIn('id', $this->demoIds('categories'))->delete();
-                DB::table('expense_categories')->whereIn('id', $this->demoIds('expense_categories'))->delete();
-                DB::table('units')->whereIn('id', $this->demoIds('units'))->delete();
-                DB::table('warehouses')->whereIn('id', $this->demoIds('warehouses'))->delete();
-
-                DB::table('demo_records')->delete();
-            });
+            $deleted = app(DemoDataCleaner::class)->purgeDemoRecordsOnly();
         } catch (\Illuminate\Database\QueryException $e) {
             report($e);
 
