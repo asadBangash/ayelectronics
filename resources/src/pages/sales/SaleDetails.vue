@@ -216,7 +216,7 @@
         </template>
         <template v-else>
           <p>This sale has no installment plan.</p>
-          <a-button v-if="Number(sale.due)>0" type="primary" @click="planOpen=true">Create installment plan</a-button>
+          <a-button v-if="Number(sale.due)>0" type="primary" @click="openPlanModal">Create installment plan</a-button>
         </template>
       </a-card>
 
@@ -323,6 +323,28 @@ const paymentHistory = computed(() => (plan.value?.installments || []).flatMap(i
 }).sort((a,b) => String(b.created_at || b.date).localeCompare(String(a.created_at || a.date))));
 const planMoney = value => docMoney((Number(value) || 0) * (Number(sale.value.currency_rate) || 1));
 function emptyGuarantor() { return {full_name:'',father_name:'',cnic_number:'',mobile_number:'',address:'',cnic_front:null,cnic_back:null}; }
+async function openPlanModal() {
+  planOpen.value = true;
+  if (!sale.value?.client_id) return;
+  try {
+    const data = await http.get(`clients/${sale.value.client_id}`);
+    const c = data.client || data;
+    const list = c.guarantors || [];
+    if (!list.length) return;
+    planForm.value.guarantors = list.map((g) => ({
+      guarantor_id: g.id,
+      full_name: g.full_name || '',
+      father_name: g.father_name || '',
+      cnic_number: g.cnic || '',
+      mobile_number: g.mobile || g.whatsapp || '',
+      address: g.permanent_address || g.business_address || '',
+      cnic_front: null,
+      cnic_back: null,
+      cnic_front_preview: g.cnic_front_path ? `/api/installment-documents/guarantor-front/${g.id}` : '',
+      cnic_back_preview: g.cnic_back_path ? `/api/installment-documents/guarantor-back/${g.id}` : '',
+    }));
+  } catch (_) { /* keep default empty guarantor slots */ }
+}
 function selectGuarantorImage(guarantor, key, event) {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -370,7 +392,9 @@ function openPayment(installment) {
 
 async function createPlan() {
   const f = planForm.value;
-  if (!f.firstDue || !f.count || f.guarantors.some(g => !g.full_name || !g.father_name || !g.cnic_number || !g.mobile_number || !g.address || !g.cnic_front || !g.cnic_back)) {
+  const missingGuarantor = (g) => !g.full_name || !g.father_name || !g.cnic_number || !g.mobile_number || !g.address
+    || ((!g.cnic_front && !g.cnic_front_preview) || (!g.cnic_back && !g.cnic_back_preview));
+  if (!f.firstDue || !f.count || f.guarantors.some(missingGuarantor)) {
     message.error('Enter the schedule and all details and CNIC images for both guarantors.'); return;
   }
   savingPlan.value = true;
@@ -388,7 +412,15 @@ async function createPlan() {
     const data = new FormData();
     data.append('client_id', sale.value.client_id); data.append('advance_amount', advance);
     installments.forEach((row,i) => { data.append(`installments[${i}][due_date]`,row.due_date); data.append(`installments[${i}][amount]`,row.amount); });
-    f.guarantors.forEach((g,i) => Object.entries(g).forEach(([key,value]) => { if (!key.endsWith('_preview') && value !== null) data.append(`guarantors[${i}][${key}]`,value); }));
+    f.guarantors.forEach((g,i) => Object.entries(g).forEach(([key,value]) => {
+      if (key.endsWith('_preview') || value === null || value === '') return;
+      if (key === 'guarantor_id') {
+        data.append(`guarantors[${i}][guarantor_id]`, value);
+        return;
+      }
+      if (!['full_name','father_name','cnic_number','mobile_number','address','cnic_front','cnic_back'].includes(key)) return;
+      data.append(`guarantors[${i}][${key}]`, value);
+    }));
     const result = await http.postForm(`sales/${sale.value.id}/installments`,data);
     plan.value = result.plan;
     planOpen.value = false;

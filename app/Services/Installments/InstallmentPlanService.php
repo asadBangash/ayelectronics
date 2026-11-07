@@ -126,6 +126,8 @@ class InstallmentPlanService
             $guarantorId = $row['guarantor_id'] ?? null;
             if (! $guarantorId && ! empty($row['guarantor'])) {
                 $guarantorId = $this->findOrCreateGuarantor($row['guarantor'])->id;
+            } elseif (! $guarantorId && ! empty($row['full_name'])) {
+                $guarantorId = $this->findOrCreateGuarantor($row)->id;
             }
             if (! $guarantorId) {
                 continue;
@@ -149,11 +151,15 @@ class InstallmentPlanService
 
         return Guarantor::create([
             'full_name' => $data['full_name'],
+            'father_name' => $data['father_name'] ?? null,
             'cnic' => $cnic,
-            'mobile' => $data['mobile'] ?? null,
+            'mobile' => $data['mobile'] ?? $data['mobile_number'] ?? null,
             'whatsapp' => $data['whatsapp'] ?? null,
+            'email' => $data['email'] ?? null,
             'phone_secondary' => $data['phone_secondary'] ?? null,
-            'address' => $data['address'] ?? null,
+            'permanent_address' => $data['permanent_address'] ?? $data['address'] ?? null,
+            'business_address' => $data['business_address'] ?? null,
+            'address' => $data['permanent_address'] ?? $data['address'] ?? null,
             'occupation' => $data['occupation'] ?? null,
         ]);
     }

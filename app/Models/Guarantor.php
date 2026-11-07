@@ -11,10 +11,18 @@ class Guarantor extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'full_name', 'cnic', 'mobile', 'whatsapp', 'phone_secondary', 'address',
-        'occupation', 'photo_path', 'cnic_front_path', 'cnic_back_path',
+        'full_name', 'father_name', 'cnic', 'mobile', 'whatsapp', 'phone_secondary', 'email',
+        'address', 'permanent_address', 'business_address', 'occupation',
+        'photo_path', 'cnic_front_path', 'cnic_back_path',
         'verification_status', 'verification_notes',
     ];
+
+    public function clients(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Client::class, 'client_guarantors')
+            ->withPivot('position', 'relationship')
+            ->withTimestamps();
+    }
 
     public function documents(): HasMany
     {

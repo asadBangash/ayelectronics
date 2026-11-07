@@ -35,6 +35,28 @@
         </a-descriptions>
       </a-card>
 
+      <a-card v-if="clientGuarantors.length" title="Guarantors" size="small" style="margin-bottom: 16px">
+        <a-row :gutter="[16, 16]">
+          <a-col v-for="g in clientGuarantors" :key="g.id" :xs="24" :lg="12">
+            <a-card size="small" :title="g.full_name || 'Guarantor'">
+              <p class="muted" style="margin-bottom: 8px">
+                <span v-if="g.father_name">Father: {{ g.father_name }} · </span>
+                <span v-if="g.cnic">CNIC: {{ g.cnic }} · </span>
+                <span v-if="g.whatsapp || g.mobile">Contact: {{ g.whatsapp || g.mobile }}</span>
+              </p>
+              <p v-if="g.email" class="muted">Email: {{ g.email }}</p>
+              <p v-if="g.permanent_address" class="muted">Permanent: {{ g.permanent_address }}</p>
+              <p v-if="g.business_address" class="muted">Business: {{ g.business_address }}</p>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+                <img v-if="g.photo_path" :src="`/api/installment-documents/guarantor-photo/${g.id}`" alt="Guarantor photo" style="width:100px;max-height:120px;object-fit:contain" />
+                <img v-if="g.cnic_front_path" :src="`/api/installment-documents/guarantor-front/${g.id}`" alt="CNIC front" style="width:160px;max-height:110px;object-fit:contain" />
+                <img v-if="g.cnic_back_path" :src="`/api/installment-documents/guarantor-back/${g.id}`" alt="CNIC back" style="width:160px;max-height:110px;object-fit:contain" />
+              </div>
+            </a-card>
+          </a-col>
+        </a-row>
+      </a-card>
+
       <a-card v-if="client?.photo_path || client?.cnic_front_path || client?.cnic_back_path" title="Customer identity documents" size="small" style="margin-bottom:16px">
         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start">
           <div v-if="client.photo_path"><div>Photograph</div><img :src="`/api/installment-documents/customer-photo/${client.id}`" alt="Customer photograph" style="width:140px;max-height:160px;object-fit:contain" /></div>
@@ -230,6 +252,7 @@ const creditLimitText = computed(() =>
 const walletEnabled = computed(() => !!brief.value.wallet_enabled);
 const walletBalance = computed(() => Number(brief.value.wallet_balance) || 0);
 const loyaltyPoints = computed(() => Number(brief.value.points ?? client.value.points) || 0);
+const clientGuarantors = computed(() => client.value.guarantors || []);
 
 function paymentStatusColor(status) {
   const s = String(status || '').toLowerCase();

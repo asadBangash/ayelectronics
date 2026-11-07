@@ -15,7 +15,9 @@ use App\Models\SaleReturn;
 use App\Models\ServiceJob;
 use App\Models\ServiceJobPayment;
 use App\Models\Setting;
+use App\Services\Clients\ClientGuarantorSync;
 use App\utils\helpers;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -229,7 +231,11 @@ class ClientController extends BaseController
             'credit_limit' => $request['credit_limit'] ?? 0,
         ]);
 
-        return response()->json($client);
+        app(ClientGuarantorSync::class)->sync($client, $request);
+
+        return response()->json(array_merge($client->toArray(), [
+            'guarantors' => $this->clientGuarantorsPayload($client),
+        ]));
     }
 
     // ------------ function show -----------\\
@@ -243,7 +249,9 @@ class ClientController extends BaseController
         $payment_methods = PaymentMethod::active()->whereNull('deleted_at')->get(['id', 'name']);
         
         return response()->json([
-            'client' => $client,
+            'client' => array_merge($client->toArray(), [
+                'guarantors' => $this->clientGuarantorsPayload($client),
+            ]),
             'accounts' => $accounts,
             'payment_methods' => $payment_methods,
         ]);
@@ -370,7 +378,51 @@ class ClientController extends BaseController
         }
         $client->save();
 
-        return response()->json(['success' => true]);
+        app(ClientGuarantorSync::class)->sync($client, $request);
+
+        return response()->json([
+            'success' => true,
+            'guarantors' => $this->clientGuarantorsPayload($client),
+        ]);
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    protected function clientGuarantorsPayload(Client $client): array
+    {
+        if (! Schema::hasTable('client_guarantors')) {
+            return [];
+        }
+
+        return $client->guarantorLinks()
+            ->with('guarantor')
+            ->orderBy('position')
+            ->get()
+            ->map(function ($link) {
+                $g = $link->guarantor;
+                if (! $g) {
+                    return null;
+                }
+
+                return [
+                    'id' => $g->id,
+                    'position' => $link->position,
+                    'relationship' => $link->relationship,
+                    'full_name' => $g->full_name,
+                    'father_name' => $g->father_name,
+                    'cnic' => $g->cnic,
+                    'mobile' => $g->mobile,
+                    'whatsapp' => $g->whatsapp,
+                    'email' => $g->email,
+                    'permanent_address' => $g->permanent_address ?? $g->address,
+                    'business_address' => $g->business_address,
+                    'photo_path' => $g->photo_path,
+                    'cnic_front_path' => $g->cnic_front_path,
+                    'cnic_back_path' => $g->cnic_back_path,
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
     }
 
     // ------------- delete client -------------\\

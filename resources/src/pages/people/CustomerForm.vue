@@ -120,6 +120,8 @@
           </a-col>
         </a-row>
 
+        <GuarantorFormList v-model="guarantors" style="margin-top: 24px" />
+
         <a-space style="margin-top: 8px">
           <a-button type="primary" :loading="submitting" @click="submit">{{ $t('submit') }}</a-button>
           <a-button @click="$router.push('/customers')">{{ $t('Cancel') }}</a-button>
@@ -141,6 +143,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
 import { useI18n } from 'vue-i18n';
 import PageHeader from '../../components/PageHeader.vue';
+import GuarantorFormList from '../../components/GuarantorFormList.vue';
+import { emptyGuarantorRow, appendGuarantorsToFormData } from '../../lib/guarantorForm';
 import http from '../../lib/http';
 
 const { t } = useI18n();
@@ -171,12 +175,13 @@ function selectImage(key, event) {
 function previewFor(key) { return previews.value[key] || ''; }
 
 const emptyForm = () => ({
-  firstname: '', lastname: '', name: '', email: '', phone: '', tax_number: '',
+  firstname: '', lastname: '', name: '', father_name: '', cnic_number: '', email: '', phone: '', tax_number: '',
   cnic: '', whatsapp: '', phone_secondary: '', area: '', occupation: '',
   country: '', city: '', state: '', zip: '', adresse: '',
   opening_balance: 0, credit_limit: 0, is_royalty_eligible: false,
 });
 const form = ref(emptyForm());
+const guarantors = ref([]);
 // The clients update endpoint deliberately ignores opening_balance — it is
 // changed only via customers/{id}/adjust-opening-balance. Remember the loaded
 // value so an edit can push a "set" adjustment when (and only when) it changes.
@@ -208,6 +213,12 @@ function multipartBody() {
   const data = new FormData();
   Object.entries(body()).forEach(([key, value]) => data.append(key, value ?? ''));
   Object.entries(selectedImages.value).forEach(([key, file]) => data.append(key, file));
+  const hasNamed = guarantors.value.some((g) => String(g.full_name || '').trim());
+  if (hasNamed) {
+    appendGuarantorsToFormData(data, guarantors.value);
+  } else {
+    data.append('guarantors_cleared', '1');
+  }
   return data;
 }
 
@@ -257,6 +268,22 @@ async function loadRecord() {
       ...(c.cnic_back_path ? { cnic_back: `/api/installment-documents/customer-back/${c.id}` } : {}),
     };
     loadedOpeningBalance.value = parseFloat(c.opening_balance) || 0;
+    guarantors.value = (c.guarantors || []).map((g) => emptyGuarantorRow({
+      id: g.id,
+      full_name: g.full_name || '',
+      father_name: g.father_name || '',
+      cnic: g.cnic || '',
+      mobile: g.mobile || '',
+      whatsapp: g.whatsapp || g.mobile || '',
+      email: g.email || '',
+      permanent_address: g.permanent_address || '',
+      business_address: g.business_address || '',
+      _previews: {
+        ...(g.photo_path ? { photo: `/api/installment-documents/guarantor-photo/${g.id}` } : {}),
+        ...(g.cnic_front_path ? { cnic_front: `/api/installment-documents/guarantor-front/${g.id}` } : {}),
+        ...(g.cnic_back_path ? { cnic_back: `/api/installment-documents/guarantor-back/${g.id}` } : {}),
+      },
+    }));
   } catch (e) {
     message.error(t('InvalidData'));
     router.push('/customers');

@@ -35,6 +35,18 @@ class Client extends Model
         return $this->hasMany(ClientDocument::class);
     }
 
+    public function guarantorLinks()
+    {
+        return $this->hasMany(ClientGuarantor::class)->orderBy('position');
+    }
+
+    public function guarantors()
+    {
+        return $this->belongsToMany(Guarantor::class, 'client_guarantors')
+            ->withPivot('position', 'relationship')
+            ->orderBy('client_guarantors.position');
+    }
+
     public function installmentPlans()
     {
         return $this->hasMany(InstallmentPlan::class);

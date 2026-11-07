@@ -266,4 +266,35 @@ class InstallmentController extends BaseController
 
         return Storage::disk('local')->download($path);
     }
+
+    /**
+     * Stream KYC images for <img> tags (customer / guarantor).
+     */
+    public function document(Request $request, string $kind, int $id)
+    {
+        $this->authorizeForUser($request->user('api'), 'view', Client::class);
+
+        $map = [
+            'customer-photo' => [Client::class, 'photo_path'],
+            'customer-front' => [Client::class, 'cnic_front_path'],
+            'customer-back' => [Client::class, 'cnic_back_path'],
+            'guarantor-photo' => [Guarantor::class, 'photo_path'],
+            'guarantor-front' => [Guarantor::class, 'cnic_front_path'],
+            'guarantor-back' => [Guarantor::class, 'cnic_back_path'],
+        ];
+
+        if (! isset($map[$kind])) {
+            abort(404);
+        }
+
+        [$modelClass, $field] = $map[$kind];
+        $model = $modelClass::findOrFail($id);
+        $path = $model->{$field};
+
+        if (! $path || ! Storage::disk('local')->exists($path)) {
+            abort(404);
+        }
+
+        return response()->file(Storage::disk('local')->path($path));
+    }
 }
